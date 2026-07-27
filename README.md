@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/the-thomas-test-suite/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/the-thomas-test-suite"></a>
+  <a href="https://pypi.org/project/the-thomas-test-suite/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/the-thomas-test-suite?cacheSeconds=3600"></a>
   <a href="https://github.com/serjupla/the-thomas-test-suite/actions/workflows/ci.yml"><img alt="Build status" src="https://github.com/serjupla/the-thomas-test-suite/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a>
 </p>
