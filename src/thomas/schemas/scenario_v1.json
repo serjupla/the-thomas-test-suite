@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://thomas-test-suite.dev/schemas/scenario_v1.json",
+  "title": "Scenario",
+  "type": "object",
+  "required": ["schema_version", "feature", "scenario_id", "endpoint", "api_checks"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "feature": { "type": "string", "minLength": 1 },
+    "scenario_id": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "endpoint": {
+      "type": "object",
+      "required": ["method", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "method": { "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"] },
+        "path": { "type": "string", "minLength": 1 }
+      }
+    },
+    "payload": { "type": "object" },
+    "correlation": {
+      "type": "object",
+      "required": ["source", "field"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "enum": ["api_response", "request_payload", "variable"] },
+        "field": { "type": "string", "minLength": 1 }
+      }
+    },
+    "api_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "field", "operator", "expected_value"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "field": { "type": "string", "minLength": 1 },
+          "operator": { "type": "string", "minLength": 1 },
+          "expected_value": {}
+        }
+      }
+    },
+    "validations": {
+      "type": "array",
+      "items": { "type": "object" }
+    }
+  },
+  "if": {
+    "properties": {
+      "validations": {
+        "type": "array",
+        "minItems": 1
+      }
+    },
+    "required": ["validations"]
+  },
+  "then": {
+    "required": ["correlation"]
+  }
+}

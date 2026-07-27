@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://thomas-test-suite.dev/schemas/execution_v1.json",
+  "title": "Execution Record",
+  "type": "object",
+  "required": ["schema_version", "execution_id", "thomas_version", "environment", "start_timestamp", "included_scenarios", "services_info", "results"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "execution_id": { "type": "string", "minLength": 1 },
+    "thomas_version": { "type": "string", "minLength": 1 },
+    "environment": { "type": "string", "minLength": 1 },
+    "start_timestamp": { "type": "string", "minLength": 1 },
+    "included_scenarios": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "services_info": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "collected_at", "status_code"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "collected_at": { "type": "string" },
+          "status_code": { "type": "integer" },
+          "error": { "type": ["string", "null"] },
+          "data": {}
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "scenario_file", "feature", "scenario_id", "folder",
+          "correlation_id", "correlation_error",
+          "request_timestamp", "response_timestamp", "request_sent", "api_response",
+          "request_technical_error", "api_checks_result", "api_result",
+          "validation_rounds", "final_status"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "scenario_file": { "type": "string" },
+          "feature": { "type": "string" },
+          "scenario_id": { "type": "string" },
+          "folder": { "type": "string" },
+          "correlation_id": { "type": ["string", "null"] },
+          "correlation_error": { "type": ["string", "null"] },
+          "request_timestamp": { "type": "string" },
+          "response_timestamp": { "type": ["string", "null"] },
+          "request_sent": {
+            "type": "object",
+            "properties": {
+              "method": { "type": "string" },
+              "path": { "type": "string" },
+              "payload": {}
+            }
+          },
+          "api_response": {
+            "type": ["object", "null"],
+            "properties": {
+              "status_code": { "type": "integer" },
+              "body": {}
+            }
+          },
+          "request_technical_error": { "type": ["string", "null"] },
+          "api_checks_result": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "expected", "obtained", "operator", "passed"],
+              "properties": {
+                "id": { "type": "string" },
+                "expected": {},
+                "obtained": {},
+                "operator": { "type": "string" },
+                "passed": { "type": "boolean" }
+              }
+            }
+          },
+          "api_result": { "enum": ["passed", "failed"] },
+          "validation_rounds": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "final_status": { "enum": ["passed", "failed", "awaiting_validation"] }
+        }
+      }
+    }
+  }
+}

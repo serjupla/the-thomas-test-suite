@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "feature": "instant_transfer",
+  "scenario_id": "valid_amount_transfer",
+  "description": "An instant transfer with valid fictional data must be accepted",
+  "endpoint": {
+    "method": "POST",
+    "path": "/orders"
+  },
+  "payload": {
+    "source_account": "{{valid_bank_account}}",
+    "destination_key": "{{valid_payment_key}}",
+    "customer_id": "{{fake_customer_id}}",
+    "amount": 150.0
+  },
+  "correlation": {
+    "source": "api_response",
+    "field": "$.id"
+  },
+  "api_checks": [
+    { "id": "http_status", "field": "status_code", "operator": "equals", "expected_value": 201 },
+    { "id": "initial_status", "field": "$.status", "operator": "equals", "expected_value": "PENDING" }
+  ],
+  "validations": []
+}

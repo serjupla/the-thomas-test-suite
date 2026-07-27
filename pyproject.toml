@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "the-thomas-test-suite"
+version = "0.1.0"
+description = "Data-driven API test automation with time-decoupled data validation across heterogeneous data sources."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "serjupla", email = "serjupla@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Quality Assurance",
+    "Environment :: Console",
+]
+dependencies = [
+    "jsonschema>=4.0",
+    "rich>=13.0",
+    "requests>=2.31",
+    "jsonpath-ng>=1.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "responses>=0.25",
+    "ruff>=0.6",
+]
+oracle = ["oracledb"]
+db2 = ["ibm-db"]
+mongo = ["pymongo"]
+kafka = ["confluent-kafka"]
+
+[project.urls]
+Repository = "https://github.com/serjupla/the-thomas-test-suite"
+Issues = "https://github.com/serjupla/the-thomas-test-suite/issues"
+Changelog = "https://github.com/serjupla/the-thomas-test-suite/blob/main/CHANGELOG.md"
+
+[project.scripts]
+thomas = "thomas.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+thomas = ["schemas/*.json"]
+
+[tool.ruff]
+src = ["src"]
+target-version = "py310"
+line-length = 100

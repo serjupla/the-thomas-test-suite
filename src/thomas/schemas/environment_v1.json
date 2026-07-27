@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://thomas-test-suite.dev/schemas/environment_v1.json",
+  "title": "Environment",
+  "type": "object",
+  "required": ["schema_version", "environment_name", "system_name", "timezone", "api"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "environment_name": { "type": "string", "minLength": 1 },
+    "system_name": { "type": "string", "minLength": 1 },
+    "timezone": { "type": "string", "minLength": 1 },
+    "report_language": { "enum": ["en", "pt"], "default": "en" },
+    "api": {
+      "type": "object",
+      "required": ["base_url"],
+      "additionalProperties": false,
+      "properties": {
+        "base_url": { "type": "string", "minLength": 1 },
+        "timeout_seconds": { "type": "integer", "minimum": 1, "default": 30 }
+      }
+    },
+    "services_info": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "info_url"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "info_url": { "type": "string", "minLength": 1 },
+          "fields_to_extract": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Field names to extract from the JSON response. If omitted, the entire response body is recorded."
+          }
+        }
+      }
+    },
+    "connectors": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": { "enum": ["oracle", "db2", "mongo", "kafka"] }
+        }
+      }
+    }
+  }
+}

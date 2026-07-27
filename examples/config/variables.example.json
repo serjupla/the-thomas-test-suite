@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "variables": {
+    "valid_bank_account": "12345-6",
+    "valid_payment_key": "fake-key@example.test",
+    "fake_customer_id": "999999"
+  }
+}

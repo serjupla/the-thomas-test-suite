@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "environment_name": "example",
+  "system_name": "Fictional Payments Platform",
+  "timezone": "America/Sao_Paulo",
+  "report_language": "en",
+  "api": {
+    "base_url": "http://127.0.0.1:8000/api",
+    "timeout_seconds": 30
+  },
+  "services_info": [
+    { "name": "instant-transfer-service", "info_url": "http://127.0.0.1:8000/instant-transfer/info" },
+    { "name": "billing-service", "info_url": "http://127.0.0.1:8000/billing/info" }
+  ],
+  "connectors": {
+    "oracle_main": {
+      "type": "oracle",
+      "dsn": "",
+      "username": "",
+      "password": ""
+    }
+  }
+}
