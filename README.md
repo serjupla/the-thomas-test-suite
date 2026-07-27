@@ -67,6 +67,8 @@ the API response and the request payload, and a scenario left
 `awaiting_validation` (data-store validation is a later feature — see
 Roadmap below).
 
+![thomas request running against the bundled examples](assets/screenshot.png)
+
 ## Active development
 
 The Thomas is under active development. `thomas request` (this release)
