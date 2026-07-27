@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/thomas-logo-dark.svg">
-    <img src="assets/logo/thomas-logo.svg" alt="The Thomas logo" width="360">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/serjupla/the-thomas-test-suite/main/assets/logo/thomas-logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/serjupla/the-thomas-test-suite/main/assets/logo/thomas-logo.svg" alt="The Thomas logo" width="360">
   </picture>
 </p>
 
@@ -67,7 +67,7 @@ the API response and the request payload, and a scenario left
 `awaiting_validation` (data-store validation is a later feature — see
 Roadmap below).
 
-![thomas request running against the bundled examples](assets/screenshot.png)
+![thomas request running against the bundled examples](https://raw.githubusercontent.com/serjupla/the-thomas-test-suite/main/assets/screenshot.png)
 
 ## Active development
 
