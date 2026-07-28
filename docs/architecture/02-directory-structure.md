@@ -3,10 +3,12 @@
 ## The Thomas repository structure (The Thomas source code)
 
 ```
-the-thomas-test-suite/
+thomas-test-suite/
+├── .specify/
+│   └── memory/
+│       └── constitution.md           # kept in Portuguese (SDD process document)
 ├── docs/
 │   ├── ROADMAP.md                     # kept in Portuguese (SDD process document)
-│   ├── constitution.md                # kept in Portuguese (SDD process document)
 │   └── architecture/                  # product documentation — English
 │       ├── 01-overview.md
 │       ├── 02-directory-structure.md
@@ -15,6 +17,9 @@ the-thomas-test-suite/
 │       ├── 05-connectors.md
 │       ├── 06-html-report.md
 │       └── 07-cli-commands.md
+├── specs/
+│   └── prompts/                       # kept in Portuguese (SDD /specify inputs)
+│       └── prompt_*.md
 ├── src/
 │   └── thomas/
 │       ├── __init__.py

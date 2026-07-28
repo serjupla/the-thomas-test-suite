@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "feature": "transfers",
+  "description": "Test rejection of transfer with invalid account",
+  "request": {
+    "method": "POST",
+    "path": "/transfers",
+    "body": {
+      "account_id": "INVALID-001",
+      "amount": "1000.00"
+    }
+  },
+  "api_checks": [
+    {
+      "path": "status_code",
+      "operator": "equals",
+      "expected": 400
+    }
+  ],
+  "validations": []
+}

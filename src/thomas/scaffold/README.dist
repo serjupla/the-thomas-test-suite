@@ -1,0 +1,86 @@
+# Thomas Test Suite Project
+
+This is a Thomas test project initialized with `thomas init`.
+
+## Quick Start
+
+### 1. Configure Environment
+
+Copy the example environment and add your API base URL:
+
+```bash
+cp config/environments/example.json.dist config/environments/example.json
+# Edit config/environments/example.json and set your api_base_url
+```
+
+### 2. Add Test Scenarios
+
+Create test scenario files in the `scenarios/` directory:
+
+```bash
+cat > scenarios/my_test.json << 'EOF'
+{
+  "schema_version": "1.0",
+  "feature": "my_feature",
+  "description": "Test my feature",
+  "request": {
+    "method": "POST",
+    "path": "/api/endpoint",
+    "body": {}
+  },
+  "api_checks": [
+    {
+      "path": "status_code",
+      "operator": "equals",
+      "expected": 200
+    }
+  ],
+  "validations": []
+}
+EOF
+```
+
+### 3. Run Tests
+
+```bash
+thomas request \
+  --environment config/environments/example.json \
+  --folder scenarios \
+  --variables config/variables.example.json
+```
+
+### 4. Generate Report
+
+```bash
+thomas report execution-record.json
+```
+
+## Examples
+
+For learning Thomas patterns, check the `examples/` folder:
+
+```bash
+# Start the mock server
+python examples/mock_server.py &
+
+# Run example scenarios
+thomas request \
+  --environment examples/config/environments/example.json \
+  --folder examples/scenarios \
+  --variables examples/config/variables.example.json
+
+# Generate example report
+thomas report execution-record.json
+```
+
+## Project Structure
+
+- `scenarios/` — Your test scenarios (JSON files)
+- `config/environments/` — Environment configurations (credentials, base URLs)
+- `config/variables.example.json` — Shared test variables
+- `examples/` — Reference implementations and mock server for learning
+- `.gitignore` — Recommended ignores (customize as needed)
+
+## Documentation
+
+For more information, see the [Thomas Test Suite documentation](https://github.com/serjupla/the-thomas-test-suite).

@@ -25,3 +25,6 @@ thomas.log
 Thumbs.db
 .vscode/
 .idea/
+
+# Claude Code local configuration (not versioned)
+CLAUDE.md

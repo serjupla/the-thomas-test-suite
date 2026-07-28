@@ -122,6 +122,43 @@ Notes on this example:
 - `correlation.source` is `"variable"`, so the `correlation_id` is taken directly from the `request_id` variable (not from the response or payload).
 - Both `payload` fields and `endpoint.path` can reference variables; they are all resolved before the HTTP request is built.
 
+### Example — custom headers in scenario endpoint (Feature 004)
+
+```json
+{
+  "schema_version": 1,
+  "feature": "api_authentication",
+  "scenario_id": "create_order_with_auth",
+  "description": "Create an order with custom authentication headers",
+  "endpoint": {
+    "method": "POST",
+    "path": "/orders",
+    "headers": {
+      "Authorization": "Bearer {{auth_token}}",
+      "X-Request-Id": "{{request_id}}",
+      "X-Tenant": "tenant-staging"
+    }
+  },
+  "payload": {
+    "amount": 100.00,
+    "customer_id": "{{customer_id}}"
+  },
+  "correlation": {
+    "source": "api_response",
+    "field": "$.id"
+  },
+  "api_checks": [
+    { "id": "http_status", "field": "status_code", "operator": "equals", "expected_value": 201 }
+  ]
+}
+```
+
+Notes on this example:
+- `endpoint.headers` is an optional object (new in Feature 004) with custom HTTP headers to send.
+- Header values support variable substitution (e.g., `"Bearer {{auth_token}}"`), resolved the same way as `payload` and `path`.
+- Headers from the environment (if defined) are merged with these scenario headers, with scenario values taking precedence on key collision.
+- This example sends `Authorization`, `X-Request-Id`, and `X-Tenant` headers; the first two are resolved from variables, the third is literal.
+
 ### Field dictionary
 
 | Field | Required | Description |
@@ -132,6 +169,7 @@ Notes on this example:
 | `description` | No | Free text, shown in the report. |
 | `endpoint.method` | Yes | `GET`, `POST`, `PUT`, `DELETE`, `PATCH`. |
 | `endpoint.path` | Yes | Relative path, concatenated with the environment's `base_url`; supports `{{variable}}` (e.g., `/users/{{user_id}}`). |
+| `endpoint.headers` | No | Custom HTTP headers for this scenario. Object with string keys and values (e.g., `{"Authorization": "Bearer {{auth_token}}"}`). Values support `{{variable}}`. Merges with environment `api.headers` with scenario values taking precedence. (Feature 004) |
 | `payload` | No | Free-form object; supports `{{variable}}`. Omitted for bodyless methods. |
 | `correlation.source` | Yes (if there are `validations`) | `api_response`, `request_payload`, or `variable`. |
 | `correlation.field` | Yes (if there are `validations`) | JSONPath (if source = `api_response`), field name in the payload (if source = `request_payload`), or variable name (if source = `variable`). |
@@ -156,22 +194,34 @@ must match `correlation_id`.
 {
   "schema_version": 1,
   "environment_name": "staging",
+  "company_name": "Example Corp",
+  "department_name": "Payments QA",
   "system_name": "Example System",
   "timezone": "America/Sao_Paulo",
   "report_language": "en",
   "api": {
     "base_url": "https://staging.example.com/api",
-    "timeout_seconds": 30
+    "timeout_seconds": 30,
+    "ssl_verify": false,
+    "headers": {
+      "X-API-Key": "{{staging_api_key}}",
+      "X-Tenant": "example-staging"
+    }
   },
   "services_info": [
     {
       "name": "instant-transfer-service",
       "info_url": "https://staging.example.com/instant-transfer/info",
-      "fields_to_extract": ["version", "status"]
+      "fields_to_extract": ["version", "status"],
+      "ssl_verify": true,
+      "headers": {
+        "Authorization": "Bearer {{service_token}}"
+      }
     },
     {
       "name": "billing-service",
-      "info_url": "https://staging.example.com/billing/info"
+      "info_url": "https://staging.example.com/billing/info",
+      "ssl_verify": false
     }
   ],
   "connectors": {
@@ -206,19 +256,25 @@ must match `correlation_id`.
 
 ### Field dictionary
 
-| Field | Required | Description |
-|---|---|---|
-| `environment_name` | Yes | Environment identifier (e.g. "staging"), should match the file name. |
-| `system_name` | Yes | Name of the system under test, shown in the report header. |
-| `timezone` | Yes | IANA name (e.g. `America/Sao_Paulo`); used to format every timestamp in the report. |
-| `report_language` | No (default `"en"`) | `"en"` or `"pt"` — language used to render `thomas report` output. |
-| `api.base_url` | Yes | Base URL concatenated with each scenario's `endpoint.path`. |
-| `api.timeout_seconds` | No (default 30) | HTTP request timeout. |
-| `services_info[].name` | Yes | Service identifier (e.g., `"payment-gateway"`). |
-| `services_info[].info_url` | Yes | HTTP endpoint to query for service information. |
-| `services_info[].fields_to_extract` | No | Array of field names to extract from the JSON response. If omitted, the entire response body is recorded. |
-| `connectors.<name>.type` | Yes | `oracle`, `db2`, `mongo`, or `kafka` — determines which driver/module is used. |
-| `connectors.<name>.*` | Yes (varies by type) | Remaining connection fields, specific per type (see `05-connectors.md`). |
+| Field | Required | Type | Default | Description |
+|---|---|---|---|---|
+| `environment_name` | Yes | string | — | Environment identifier (e.g. "staging"), should match the file name. |
+| `company_name` | No | string | — | Organization context for audit trail; appears in execution record if present. |
+| `department_name` | No | string | — | Department/team context for audit trail; appears in execution record if present. |
+| `system_name` | Yes | string | — | Name of the system under test, shown in the report header. |
+| `timezone` | Yes | string | — | IANA name (e.g. `America/Sao_Paulo`); used to format every timestamp in the report. |
+| `report_language` | No | enum | `"en"` | `"en"` or `"pt"` — language used to render `thomas report` output. |
+| `api.base_url` | Yes | string | — | Base URL concatenated with each scenario's `endpoint.path`. |
+| `api.timeout_seconds` | No | integer | 30 | HTTP request timeout in seconds. |
+| `api.ssl_verify` | No | boolean | `true` | SSL certificate verification for API requests; set to `false` for self-signed certs in staging. |
+| `api.headers` | No | object | — | Custom HTTP headers applied to all scenario requests. Object with string keys and values; values support `{{variable}}` for dynamic substitution. Scenario headers override these for the same key. (Feature 004) |
+| `services_info[].name` | Yes | string | — | Service identifier (e.g., `"payment-gateway"`). |
+| `services_info[].info_url` | Yes | string | — | HTTP endpoint to query for service information. |
+| `services_info[].fields_to_extract` | No | array | — | Array of field names to extract from the JSON response. If omitted, the entire response body is recorded. |
+| `services_info[].ssl_verify` | No | boolean | `true` | SSL certificate verification for this service's polling; independent of `api.ssl_verify`. |
+| `services_info[].headers` | No | object | — | Custom HTTP headers for this service's polling requests. Object with string keys and values; values support `{{variable}}`. (Feature 004) |
+| `connectors.<name>.type` | Yes | string | — | `oracle`, `db2`, `mongo`, or `kafka` — determines which driver/module is used. |
+| `connectors.<name>.*` | Yes (varies by type) | — | — | Remaining connection fields, specific per type (see `05-connectors.md`). |
 
 A single environment may have **multiple connectors of the same type**
 (e.g. `oracle_main` and `oracle_secondary`), each with its own name.
@@ -279,7 +335,7 @@ preparation step.
       "correlation_error": null,
       "request_timestamp": "2026-07-25T14:30:02-03:00",
       "response_timestamp": "2026-07-25T14:30:02.340000-03:00",
-      "request_sent": { "method": "POST", "path": "/orders", "payload": { "...": "..." } },
+      "request_sent": { "method": "POST", "path": "/orders", "payload": { "...": "..." }, "headers": { "Authorization": "Bearer abc123", "X-Tenant": "example-staging" } },
       "api_response": { "status_code": 201, "body": { "id": "abc-123-def", "status": "PENDING" } },
       "request_technical_error": null,
       "api_checks_result": [
@@ -366,6 +422,33 @@ body has been fully read). `response_timestamp` is `null` whenever
 difference between the two timestamps is the scenario's response time —
 recorded here so a later feature (the HTML report) can display it without
 `thomas request` needing to compute or format a duration itself.
+
+### Request headers in execution record (`request_sent.headers`) (Feature 004)
+
+The `request_sent` object now includes a `headers` field containing all HTTP headers sent with the request.
+This includes:
+- Headers defined in `endpoint.headers` (scenario-level)
+- Headers defined in `environment.api.headers` (environment-level)
+- Merged result with scenario headers taking precedence over environment headers for the same key
+
+All variable substitutions (e.g., `{{auth_token}}`) are resolved before recording, so the `headers` field
+shows the actual values sent. This ensures full traceability and auditability of requests for compliance
+and debugging purposes.
+
+Example:
+```json
+"request_sent": {
+  "method": "POST",
+  "path": "/orders",
+  "payload": { "amount": 100.00, "customer_id": "12345" },
+  "headers": {
+    "Authorization": "Bearer eyJhbGc...",
+    "X-Request-Id": "req-2026-07-25-001",
+    "X-Tenant": "tenant-staging",
+    "X-API-Key": "staging-key-abc123"
+  }
+}
+```
 
 ### Variable substitution in `endpoint.path`
 
