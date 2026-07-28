@@ -1,0 +1,26 @@
+# Environment files (never commit real credentials)
+config/environments/*.json
+!config/environments/*.dist
+
+# Generated reports and execution records
+reports/
+*.html
+execution-records/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

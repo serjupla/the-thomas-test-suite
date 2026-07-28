@@ -42,6 +42,29 @@ pip install the-thomas-test-suite
 
 ## Quickstart
 
+### Option 1: Bootstrap a new project (recommended for new users)
+
+```bash
+pip install the-thomas-test-suite
+
+# Create a new Thomas project in current directory
+thomas init
+
+# Start the bundled mock server
+cd . && python examples/mock_server.py &
+
+# In another terminal: run the example scenarios
+thomas request \
+  --environment examples/config/environments/example.json \
+  --folder examples/scenarios \
+  --variables examples/config/variables.example.json
+```
+
+`thomas init` creates a ready-to-use project structure with examples, templates,
+and a mock server for learning. No git clone required.
+
+### Option 2: Clone repository and run examples
+
 The example below runs entirely against a local mock HTTP service — no
 external infrastructure or credentials required.
 
@@ -59,6 +82,8 @@ thomas request \
   --folder examples/scenarios \
   --variables examples/config/variables.example.json
 ```
+
+## Example Output
 
 You should see a console summary table and an execution record written
 under `executions/`. The bundled scenarios demonstrate variable

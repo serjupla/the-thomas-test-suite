@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "variables": {
+    "account_id": "ACC-001",
+    "customer_name": "John Doe",
+    "transfer_amount": "1000.00"
+  }
+}

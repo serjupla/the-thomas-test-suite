@@ -136,3 +136,100 @@ def test_load_variables_valid(tmp_path):
     variables = load_variables(vars_path)
 
     assert variables == {"valid_bank_account": "12345-6"}
+
+
+# Feature 003: SSL Verification & Metadata tests
+
+def test_load_environment_with_company_name_and_department_name(tmp_path):
+    env_path = tmp_path / "prod.json"
+    env_data = {
+        **VALID_ENVIRONMENT,
+        "company_name": "Example Corp",
+        "department_name": "Payments QA"
+    }
+    write_json(env_path, env_data)
+
+    document = load_environment(env_path)
+
+    assert document["company_name"] == "Example Corp"
+    assert document["department_name"] == "Payments QA"
+
+
+def test_load_environment_with_api_ssl_verify_false(tmp_path):
+    env_path = tmp_path / "staging.json"
+    env_data = {
+        **VALID_ENVIRONMENT,
+        "api": {**VALID_ENVIRONMENT["api"], "ssl_verify": False}
+    }
+    write_json(env_path, env_data)
+
+    document = load_environment(env_path)
+
+    assert document["api"]["ssl_verify"] is False
+
+
+def test_load_environment_with_services_info_ssl_verify(tmp_path):
+    env_path = tmp_path / "test.json"
+    env_data = {
+        **VALID_ENVIRONMENT,
+        "services_info": [
+            {
+                "name": "payment_service",
+                "info_url": "https://payment.test/info",
+                "ssl_verify": False
+            },
+            {
+                "name": "identity_service",
+                "info_url": "https://identity.test/info",
+                "ssl_verify": True
+            }
+        ]
+    }
+    write_json(env_path, env_data)
+
+    document = load_environment(env_path)
+
+    assert document["services_info"][0]["ssl_verify"] is False
+    assert document["services_info"][1]["ssl_verify"] is True
+
+
+def test_load_environment_without_new_fields_retrocompatibility(tmp_path):
+    """Old environment files without new fields (company_name, department_name, ssl_verify) should still validate."""
+    env_path = tmp_path / "legacy.json"
+    # VALID_ENVIRONMENT already has no new fields, so this should pass
+    write_json(env_path, VALID_ENVIRONMENT)
+
+    document = load_environment(env_path)
+
+    assert document["environment_name"] == "dev"
+    assert "company_name" not in document
+    assert "department_name" not in document
+    assert "ssl_verify" not in document.get("api", {})
+
+
+def test_load_environment_rejects_ssl_verify_string_not_boolean(tmp_path):
+    """Malformed ssl_verify as string 'false' instead of boolean should be rejected."""
+    env_path = tmp_path / "bad.json"
+    env_data = {
+        **VALID_ENVIRONMENT,
+        "api": {**VALID_ENVIRONMENT["api"], "ssl_verify": "false"}  # string, not boolean
+    }
+    write_json(env_path, env_data)
+
+    with pytest.raises(ThomasFileError) as exc_info:
+        load_environment(env_path)
+
+    assert "ssl_verify" in str(exc_info.value) or "boolean" in str(exc_info.value).lower()
+
+
+def test_load_environment_rejects_empty_company_name(tmp_path):
+    """Empty company_name string should be rejected (minLength: 1)."""
+    env_path = tmp_path / "bad.json"
+    env_data = {
+        **VALID_ENVIRONMENT,
+        "company_name": ""  # empty string violates minLength: 1
+    }
+    write_json(env_path, env_data)
+
+    with pytest.raises(ThomasFileError):
+        load_environment(env_path)

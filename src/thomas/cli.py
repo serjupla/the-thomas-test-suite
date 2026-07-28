@@ -19,15 +19,16 @@ from thomas.request.dispatch import run_request
 console = Console()
 
 _BANNER_ART_LINES = [
-    "▄▄▄▄▄▄▄▄▄ ▄▄            ▄▄▄▄▄▄▄▄▄ ▄▄                                 ▄▄▄▄▄▄▄▄▄                   ▄▄▄▄▄▄▄",
-    "▀▀▀███▀▀▀ ██            ▀▀▀███▀▀▀ ██                                 ▀▀▀███▀▀▀           ██     █████▀▀▀       ▀▀  ██",
-    "   ███    ████▄ ▄█▀█▄      ███    ████▄ ▄███▄ ███▄███▄  ▀▀█▄ ▄█▀▀▀      ███ ▄█▀█▄ ▄█▀▀▀ ▀██▀▀    ▀████▄  ██ ██ ██ ▀██▀▀ ▄█▀█▄",
-    "   ███    ██ ██ ██▄█▀      ███    ██ ██ ██ ██ ██ ██ ██ ▄█▀██ ▀███▄      ███ ██▄█▀ ▀███▄  ██        ▀████ ██ ██ ██  ██   ██▄█▀",
-    # Bottom row of the art: ends right at the base of the "e" in "suite", where the version is appended.
-    "   ███    ██ ██ ▀█▄▄▄      ███    ██ ██ ▀███▀ ██ ██ ██ ▀█▄██ ▄▄▄█▀      ███ ▀█▄▄▄ ▄▄▄█▀  ██     ███████▀ ▀██▀█ ██▄ ██   ▀█▄▄▄",
+    "//",
+    "// ▀▛▘▌      ▀▛▘▌                ▀▛▘     ▐   ▞▀▖   ▗▐     ",
+    "//  ▌ ▛▀▖▞▀▖  ▌ ▛▀▖▞▀▖▛▚▀▖▝▀▖▞▀▘  ▌▞▀▖▞▀▘▜▀  ▚▄ ▌ ▌▄▜▀ ▞▀▖",
+    "//  ▌ ▌ ▌▛▀   ▌ ▌ ▌▌ ▌▌▐ ▌▞▀▌▝▀▖  ▌▛▀ ▝▀▖▐ ▖ ▖ ▌▌ ▌▐▐ ▖▛▀ ",
+    # Bottom row where version is appended
+    "//  ▘ ▘ ▘▝▀▘  ▘ ▘ ▘▝▀ ▘▝ ▘▝▀▘▀▀   ▘▝▀▘▀▀  ▀  ▝▀ ▝▀▘▀▘▀ ▝▀▘",
+    "//",
 ]
-_BANNER_ART_LINES[-1] += f" v.{__version__}"
-BANNER = "\n" + "\n".join(_BANNER_ART_LINES) + "\n"
+_BANNER_ART_LINES[-2] += f" v.{__version__}"
+BANNER = "\n".join(_BANNER_ART_LINES)
 
 _CREDENTIAL_KEYS = {"password", "username"}
 
@@ -68,6 +69,21 @@ def _configure_logging(log_file: Path, secrets: list[str]) -> None:
     logger.addHandler(handler)
 
 
+def _build_init_parser(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser("init", help="Bootstrap a new Thomas test project.")
+    parser.add_argument(
+        "destination",
+        nargs="?",
+        default=None,
+        help="Project directory (default: current directory)",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing template files (scenarios/ is always protected)",
+    )
+
+
 def _build_request_parser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("request", help="Dispatch scenario requests and record results.")
     parser.add_argument("--environment", required=True, type=Path)
@@ -83,8 +99,15 @@ def _build_request_parser(subparsers: argparse._SubParsersAction) -> None:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="thomas")
     subparsers = parser.add_subparsers(dest="command", required=True)
+    _build_init_parser(subparsers)
     _build_request_parser(subparsers)
     return parser
+
+
+def run_init_command(args: argparse.Namespace) -> int:
+    from thomas.commands.init import init_command
+
+    return init_command(args, banner=BANNER)
 
 
 def _print_summary(results: list[dict]) -> None:
@@ -170,7 +193,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    if args.command == "request":
+    if args.command == "init":
+        return run_init_command(args)
+    elif args.command == "request":
         return run_request_command(args)
 
     parser.error(f"unknown command: {args.command}")

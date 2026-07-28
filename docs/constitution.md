@@ -1,21 +1,5 @@
 # Constitution — The Thomas
 
-> Nome do projeto (comercial): **The Thomas Test Suite**
-> Nome do pacote/comando CLI: **thomas**
-> Repositório sugerido: **thomas-test-suite**
-> Versão da constitution: 1.2.0 | Ratificada em: 2026-07-25
-
-> **Nota sobre idioma**: este documento, o `docs/ROADMAP.md` e os prompts
-> em `specs/prompts/` são artefatos de processo do SDD/Spec-Kit e são
-> mantidos **em português**, por conveniência do mantenedor do projeto.
-> Todo o restante — código-fonte, nomes de comandos da CLI, campos dos
-> JSON Schemas, documentação de arquitetura (`docs/architecture/`),
-> `README`, `LICENSE`, `NOTICE` e qualquer material voltado ao usuário
-> final do The Thomas — é escrito **em inglês**, para maximizar a adoção
-> internacional da ferramenta. O relatório HTML gerado é a única exceção
-> com suporte bilíngue: o idioma de saída (`en` ou `pt`) é escolhido pelo
-> usuário via configuração no arquivo de ambiente (`report_language`).
-
 ## 1. Propósito e visão
 
 The Thomas é uma ferramenta de automação de testes de API **orientada a dados**,
@@ -95,7 +79,7 @@ pacote Python (via extras do `pyproject.toml`). A ausência de um driver não
 pode impedir o uso dos demais conectores. Cada conector é uma feature
 isolada no roadmap.
 
-### VII. Nenhum dado real de terceiros ou empregadores no código público
+### VII. Nenhum dado real de terceiros no código público
 O repositório público não deve conter, em nenhum momento do seu histórico
 de commits, nomes de tabela, schema, endpoint, regra de negócio ou dado de
 qualquer sistema real de terceiros. Todos os exemplos usados em
@@ -172,8 +156,7 @@ como um defeito de mesma gravidade que um teste quebrado — nenhuma feature
 
 - **Linguagem de implementação**: Python 3.10+.
 - **Idioma do produto**: inglês em todo comando, schema, mensagem de log,
-  mensagem de erro e documentação de arquitetura (ver nota de idioma no
-  topo deste documento).
+  mensagem de erro e documentação de arquitetura.
 - **Empacotamento**: `pyproject.toml` (PEP 621), sem Poetry. Dependências de
   conector são **extras opcionais** (`thomas[oracle]`, `thomas[kafka]`, etc.).
 - **CLI**: comandos `thomas request`, `thomas validate`, `thomas report`.
@@ -266,11 +249,8 @@ Uma feature só é considerada concluída quando:
 
 Diferente de um modelo em que a publicação ocorre apenas ao final do
 roadmap, o The Thomas é publicado publicamente **logo após a conclusão da
-primeira feature (F00 — Core)**. A motivação é dupla: (a) o comando
-`thomas request` sozinho já é uma ferramenta útil e utilizável em outros
-contextos; (b) a proteção de marca e licença (seção 7) só se aplica a
-partir da publicação — quanto antes o projeto for publicado sob Apache
-2.0 com a marca documentada, mais cedo essa proteção começa a valer.
+primeira feature (F00 — Core)**, pois  o comando `thomas request` sozinho 
+já é uma ferramenta útil e utilizável em outros contextos.
 
 Consequência prática: a feature F01 do roadmap (ver `docs/ROADMAP.md`) é
 dedicada exclusivamente a essa publicação inicial (licença, `NOTICE`,

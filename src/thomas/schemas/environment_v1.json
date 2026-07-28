@@ -8,6 +8,8 @@
   "properties": {
     "schema_version": { "const": 1 },
     "environment_name": { "type": "string", "minLength": 1 },
+    "company_name": { "type": "string", "minLength": 1 },
+    "department_name": { "type": "string", "minLength": 1 },
     "system_name": { "type": "string", "minLength": 1 },
     "timezone": { "type": "string", "minLength": 1 },
     "report_language": { "enum": ["en", "pt"], "default": "en" },
@@ -17,7 +19,12 @@
       "additionalProperties": false,
       "properties": {
         "base_url": { "type": "string", "minLength": 1 },
-        "timeout_seconds": { "type": "integer", "minimum": 1, "default": 30 }
+        "timeout_seconds": { "type": "integer", "minimum": 1, "default": 30 },
+        "ssl_verify": { "type": "boolean" },
+        "headers": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
       }
     },
     "services_info": {
@@ -33,6 +40,11 @@
             "type": "array",
             "items": { "type": "string" },
             "description": "Field names to extract from the JSON response. If omitted, the entire response body is recorded."
+          },
+          "ssl_verify": { "type": "boolean" },
+          "headers": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
           }
         }
       }

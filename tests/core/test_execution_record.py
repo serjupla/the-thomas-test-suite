@@ -123,3 +123,64 @@ def test_write_execution_record_creates_file(tmp_path):
     assert output_path.exists()
     on_disk = json.loads(output_path.read_text())
     assert on_disk["execution_id"] == record["execution_id"]
+
+
+# Feature 003: Metadata tests
+
+def test_execution_record_includes_company_name_when_present():
+    record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result()],
+        company_name="Example Corp",
+    )
+
+    assert record["company_name"] == "Example Corp"
+
+
+def test_execution_record_includes_department_name_when_present():
+    record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result()],
+        department_name="Payments QA",
+    )
+
+    assert record["department_name"] == "Payments QA"
+
+
+def test_execution_record_omits_metadata_when_not_present():
+    record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result()],
+        # company_name and department_name not provided
+    )
+
+    assert "company_name" not in record
+    assert "department_name" not in record
+
+
+def test_execution_record_includes_both_metadata_fields():
+    record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result()],
+        company_name="Example Corp",
+        department_name="Payments QA",
+    )
+
+    assert record["company_name"] == "Example Corp"
+    assert record["department_name"] == "Payments QA"

@@ -1,15 +1,14 @@
 # Roadmap — The Thomas
 
-> Documento de processo do SDD, mantido em português. O produto em si
-> (código, comandos, schemas, documentação de arquitetura) é em inglês —
-> ver nota de idioma na `constitution.md`.
-
 ## Tabela de controle
 
 | ID | Feature | Fase | Status | Data de conclusão |
 |---|---|---|---|---|
 | F00 | Core (schemas, carregamento de cenários, variáveis, correlação, `thomas request`) | 0 | Concluído | 2026-07-25 |
 | F01 | Publicação inicial (repositório público, licença, marca, README) | 0 | Concluído | 2026-07-27 |
+| F003 | Controle de verificação de certificado SSL e metadados de ambiente | 0 | Concluído | 2026-07-27 |
+| F004 | Suporte a headers customizados em requisições | 0 | Concluído | 2026-07-27 |
+| F005 | Thomas Init (`thomas init` — bootstrap projects without git clone) | 0 | Concluído | 2026-07-27 |
 | F02 | Motor de validação genérico (operadores + orquestração de `thomas validate`) | 1 | Não iniciado | — |
 | F03 | Conector Oracle | 1 | Não iniciado | — |
 | F04 | Relatório HTML (bilíngue EN/PT) | 1 | Não iniciado | — |
@@ -27,10 +26,7 @@
 Diferente de um modelo tradicional em que a publicação ocorre só ao final
 do roadmap, aqui **F01 (Publicação inicial) acontece logo após F00**, não
 no final. Motivo: o comando `thomas request` sozinho já é uma ferramenta
-útil e reutilizável em outros contextos, e a proteção de marca/licença
-(ver `constitution.md`, seção 7 e 10) só começa a valer a partir da
-publicação — quanto antes publicado sob Apache 2.0, mais cedo essa
-proteção passa a existir. A partir de F01, toda feature seguinte (F02 em
+útil e reutilizável em outros contextos. A partir de F01, toda feature seguinte (F02 em
 diante) é desenvolvida diretamente no repositório já público.
 
 ## Nota sobre a ordem das fases
@@ -64,6 +60,38 @@ o primeiro commit público), `CONTRIBUTING.md`, e empacotamento mínimo
 (`pyproject.toml` com metadados completos). Esta feature é
 deliberadamente enxuta — cobre apenas o que já existe (F00), não antecipa
 documentação de funcionalidades futuras.
+
+### F003 — Controle de verificação de certificado SSL e metadados de ambiente
+Adição de controle granular de verificação de certificado SSL por API e por
+serviço, permitindo ambientes de teste com certificados auto-assinados. 
+Simultaneamente, adição de campos opcionais de metadados de ambiente 
+(`company_name`, `department_name`) para trilhas de auditoria e futuros 
+relatórios. Ambas as mudanças são aditivas e retrocompatíveis com a versão 
+de schema 1 (nenhum bump necessário). Habilita cenários de teste heterogêneos 
+onde diferentes APIs e serviços têm diferentes configurações de certificado.
+
+### F004 — Suporte a headers customizados em requisições
+Adição de suporte a headers customizados em dois níveis: no cenário
+(nível de endpoint) e no ambiente (nível de API e serviços), com precedência
+de cenário sobre ambiente. Inclui resolução de variáveis nos valores dos headers
+(`{{variable_name}}`), permitindo reutilização de cenários com credenciais
+dinâmicas. Retrocompatível com schema version 1 (nenhum bump necessário).
+Habilita testes de APIs que requerem autenticação por header ou headers
+específicos da aplicação em tempo de teste.
+
+### F005 — Thomas Init
+Comando `thomas init [destination] [--force]` que bootstrapa um novo projeto
+Thomas completo, pronto para uso, sem necessidade de git clone. Inclui:
+estrutura de diretórios (scenarios/, config/, examples/), arquivos de
+template (config/environments/example.json.dist, .gitignore, README), servidor
+mock funcional (`examples/mock_server.py` com endpoints /health, /charges,
+/transfers), e cenários de exemplo (billing, valid/invalid transfers).
+Suporta validação de path (symlinks, mount points, Windows limit),
+proteção da pasta scenarios/ contra sobrescrita mesmo com --force,
+idempotência total (executar duas vezes não causa danos), e mensagens de
+erro claras com exit codes apropriados. Reduz barreira de entrada para
+novos usuários — nenhum git, nenhuma instalação editable, apenas
+`pip install the-thomas-test-suite && thomas init`.
 
 ### F02 — Motor de validação genérico
 Implementação do motor de operadores (tabela completa descrita em
@@ -111,15 +139,3 @@ tratamento de timeout como erro técnico.
 Implementação via `pymongo`, com o formato de validação por filtro/coleção
 específico de banco não-relacional (ver `05-connectors.md`). Última
 feature do roadmap atual.
-
-## Fora do roadmap atual (backlog futuro)
-
-- Geração de cenários via IA a partir de descrição em linguagem natural
-  (discutido e propositalmente adiado).
-- Resolução dinâmica de variáveis preparatórias via API/banco externo
-  (evolução do schema de variáveis, hoje estático).
-- Paralelização de disparo/validação (hoje sequencial por decisão
-  explícita de simplicidade).
-- Re-execução seletiva de um único cenário sem reprocessar a pasta inteira.
-- Funcionalidades enterprise/proprietárias (modelo open core, ver
-  `constitution.md`, seção 7) — nenhuma prevista no roadmap técnico atual.

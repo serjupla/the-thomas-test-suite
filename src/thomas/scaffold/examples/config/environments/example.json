@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "environment_name": "example-local",
+  "system_name": "Mock Example System",
+  "company_name": "Example Corp",
+  "department_name": "QA",
+  "timezone": "UTC",
+  "report_language": "en",
+  "api": {
+    "base_url": "http://localhost:8000",
+    "timeout_seconds": 30
+  },
+  "services_info": [
+    {
+      "name": "example-service",
+      "info_url": "http://localhost:8000/info"
+    }
+  ],
+  "connectors": {}
+}

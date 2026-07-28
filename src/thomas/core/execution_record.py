@@ -67,10 +67,12 @@ def build_execution_record(
     included_scenarios: list[str],
     services_info: list[dict[str, Any]],
     results: list[ScenarioResult],
+    company_name: str | None = None,
+    department_name: str | None = None,
 ) -> dict[str, Any]:
     tz = ZoneInfo(timezone_name)
     start_time = start_time.astimezone(tz)
-    return {
+    record: dict[str, Any] = {
         "schema_version": 1,
         "execution_id": build_execution_id(start_time),
         "thomas_version": THOMAS_VERSION,
@@ -80,6 +82,11 @@ def build_execution_record(
         "services_info": services_info,
         "results": [result.to_dict() for result in results],
     }
+    if company_name is not None:
+        record["company_name"] = company_name
+    if department_name is not None:
+        record["department_name"] = department_name
+    return record
 
 
 def write_execution_record(record: dict[str, Any], output_dir: Path) -> Path:

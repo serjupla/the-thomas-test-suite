@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "the-thomas-test-suite"
-version = "0.1.0"
+version = "0.2.0"
 description = "Data-driven API test automation with time-decoupled data validation across heterogeneous data sources."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -55,7 +55,10 @@ thomas = "thomas.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-thomas = ["schemas/*.json"]
+thomas = [
+    "schemas/*.json",
+    "scaffold/**/*",
+]
 
 [tool.ruff]
 src = ["src"]
