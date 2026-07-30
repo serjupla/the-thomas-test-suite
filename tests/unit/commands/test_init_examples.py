@@ -34,8 +34,8 @@ class TestInitExamples:
             assert example_env.exists()
 
             data = json.loads(example_env.read_text())
-            assert data["api"]["base_url"] == "http://localhost:8000"
-            assert data["schema_version"] == 1
+            assert data["api_base_url"] == "http://localhost:8000"
+            assert data["schema_version"] == "1.0"
 
     def test_scaffold_creates_example_scenarios(self):
         """Test that example scenarios are created."""
@@ -58,10 +58,9 @@ class TestInitExamples:
 
             for scenario_file in scenarios_dir.glob("*.json"):
                 data = json.loads(scenario_file.read_text())
-                assert data["schema_version"] == 1
+                assert data["schema_version"] == "1.0"
                 assert "feature" in data
-                # Scenarios use 'request' key in scaffold examples
-                assert "request" in data or "endpoint" in data
+                assert "request" in data
                 assert "api_checks" in data
 
     def test_scaffold_example_variables(self):
@@ -74,6 +73,6 @@ class TestInitExamples:
             assert vars_file.exists()
 
             data = json.loads(vars_file.read_text())
-            assert data["schema_version"] == 1
+            assert data["schema_version"] == "1.0"
             assert "variables" in data
             assert "account_id" in data["variables"]

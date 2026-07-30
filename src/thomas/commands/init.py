@@ -42,6 +42,6 @@ def init_command(args, banner: str = "") -> int:
     except ScaffoldError as e:
         print(f"Error: {e}", file=sys.stderr)
         return e.exit_code
-    except OSError as e:
+    except Exception as e:
         print(f"Unexpected error: {e}", file=sys.stderr)
         return 1

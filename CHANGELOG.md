@@ -5,6 +5,42 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-07-30
+
+### Added
+
+- Generic validation engine (F02): `BaseConnector` abstract interface, shared
+  operators/comparison engine reused by API checks and data-source
+  validations, and the `thomas validate` command — reads an execution
+  record, runs a validation round per pending scenario, appends to
+  validation history, and recalculates `final_status`.
+- Oracle connector (F03): first real data-source connector, using
+  `oracledb` in thin mode, installable via the `thomas[oracle]` extra.
+  Establishes the connector contract subsequent connectors (DB2, Kafka,
+  MongoDB) will follow.
+- HTML report (F04): `thomas report` command producing a self-contained
+  HTML report (inline CSS/JS/logo, no network calls), with bilingual
+  English/Portuguese output controlled by `report_language` in the
+  environment file. Dashboard stat cards, pass/fail gauge, folder and
+  functionality filters, and three-level drill-down (scenario → round →
+  individual validation).
+- Design system (F009): CSS-only restyle of the HTML report (color
+  tokens, typography, spacing, responsive layout, dark mode), reusing the
+  F04 template and data pipeline without structural changes.
+- Report dashboard restructure (F010): structural rebuild of the HTML
+  report into three navigable tab views — Dashboard, Execution
+  Environment, and Timeline. Dashboard adds a donut/ring pass-rate
+  chart, a Folder/Feature toggle on the per-feature mini-card grid,
+  combinable status filter chips with text search, and a four-section
+  collapsible scenario drill-down (Request/Response/API Checks/
+  Validation). Environment view consolidates identification, API under
+  test, info services, connectors (with sensitive-field masking), and
+  prepared variables. Timeline view adds a Gantt-style visualization and
+  an interleaved log view plus a latency scatter plot. Includes an
+  additive schema change — `prepared_variables` in `execution_v1.json`
+  (no schema version bump) — so `thomas request` records the resolved
+  variables used during execution.
+
 ## [0.2.0] - 2026-07-27
 
 ### Added
@@ -47,5 +83,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Initial PyPI packaging under the distribution name
   `the-thomas-test-suite` (CLI command remains `thomas`).
 
+[0.3.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/serjupla/the-thomas-test-suite/releases/tag/v0.1.0

@@ -9,10 +9,12 @@
 | F003 | Controle de verificação de certificado SSL e metadados de ambiente | 0 | Concluído | 2026-07-27 |
 | F004 | Suporte a headers customizados em requisições | 0 | Concluído | 2026-07-27 |
 | F005 | Thomas Init (`thomas init` — bootstrap projects without git clone) | 0 | Concluído | 2026-07-27 |
-| F02 | Motor de validação genérico (operadores + orquestração de `thomas validate`) | 1 | Não iniciado | — |
-| F03 | Conector Oracle | 1 | Não iniciado | — |
-| F04 | Relatório HTML (bilíngue EN/PT) | 1 | Não iniciado | — |
+| F02 | Motor de validação genérico (operadores + orquestração de `thomas validate`) | 1 | Concluído | 2026-07-28 |
+| F03 | Conector Oracle | 1 | Concluído | 2026-07-28 |
+| F04 | Relatório HTML (bilíngue EN/PT) | 1 | Concluído | 2026-07-29 |
 | F05 | Múltiplos ambientes (refinamento) | 1 | Não iniciado | — |
+| F009 | Aplicar design system ao relatório HTML (cores, tipografia, espaçamento, responsivo) | 1 | Concluído | 2026-07-29 |
+| F010 | Reestruturar relatório HTML em 3 views (Dashboard, Ambiente de execução, Timeline) | 1 | Concluído | 2026-07-29 |
 | F06 | Conector DB2 | 2 | Não iniciado | — |
 | F07 | Conector Kafka | 2 | Não iniciado | — |
 | F08 | Conector MongoDB | 2 | Não iniciado | — |
@@ -28,6 +30,10 @@ do roadmap, aqui **F01 (Publicação inicial) acontece logo após F00**, não
 no final. Motivo: o comando `thomas request` sozinho já é uma ferramenta
 útil e reutilizável em outros contextos. A partir de F01, toda feature seguinte (F02 em
 diante) é desenvolvida diretamente no repositório já público.
+
+F02-F04, F009 e F010 foram publicados em conjunto na v0.3.0
+(2026-07-30), consolidando o fluxo completo `request` → `validate` →
+`report` com o conector Oracle como prova de conceito.
 
 ## Nota sobre a ordem das fases
 
@@ -117,6 +123,31 @@ tabela-resumo agrupada por pasta, detalhamento em três níveis (cenário →
 rodada → validação individual), aba de timeline cronológica, dark mode.
 Já pode ser exercitada com dados reais de execuções usando o conector
 Oracle (F03).
+
+### F009 — Aplicar design system ao relatório HTML
+Restilização apenas via CSS do relatório HTML gerado pela F04 (cores,
+tipografia, espaçamento, layout responsivo, dark mode), reaproveitando a
+estrutura de classes HTML e a lógica de população de dados já existentes,
+sem alterações estruturais.
+
+### F010 — Reestruturar relatório HTML em 3 views
+Reconstrução estrutural (não apenas visual) do template Jinja2 do
+relatório: três views mutuamente exclusivas navegáveis por tabs
+(Dashboard padrão, Ambiente de execução, Timeline), reaproveitando os
+tokens de design da F009 e o pipeline de dados da F04/F008 sem
+reescrevê-los. Dashboard ganha donut chart, mini-cards com toggle
+Pasta/Funcionalidade, chips de filtro por status combináveis com busca
+textual, e detalhamento de cenário em 4 seções colapsáveis
+independentes (Requisição/Resposta/Verificações/Validação). Ambiente de
+execução consolida identificação, API sob teste, serviços de
+informação, conectores (com mascaramento de campos sensíveis) e
+variáveis preparatórias — cada bloco omitido por completo quando não há
+dado. Timeline ganha visualização Gantt (marcadores proporcionais ao
+tempo real, coloridos por resultado da rodada) e visualização Log
+intercalada, além de gráfico de dispersão de latência. Inclui uma
+mudança aditiva de schema (`prepared_variables` em `execution_v1.json`,
+sem bump de versão) para que `thomas request` registre as variáveis
+resolvidas usadas na execução.
 
 ### F05 — Múltiplos ambientes (refinamento)
 Formalização do suporte a múltiplos arquivos de ambiente nomeados,

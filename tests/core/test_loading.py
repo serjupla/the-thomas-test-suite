@@ -40,7 +40,7 @@ def test_load_scenarios_valid_folder(tmp_path):
     nested.mkdir()
     write_json(nested / "b.json", {**VALID_SCENARIO, "scenario_id": "other"})
 
-    loaded = load_scenarios(tmp_path)
+    loaded = load_scenarios(tmp_path, project_root=tmp_path)
 
     assert len(loaded) == 2
     files = sorted(s.scenario_file for s in loaded)
@@ -61,7 +61,7 @@ def test_load_scenarios_single_file(tmp_path):
     scenario_path = tmp_path / "a.json"
     write_json(scenario_path, VALID_SCENARIO)
 
-    loaded = load_scenarios(scenario_path)
+    loaded = load_scenarios(scenario_path, project_root=tmp_path)
 
     assert len(loaded) == 1
     assert loaded[0].scenario_file == "a.json"

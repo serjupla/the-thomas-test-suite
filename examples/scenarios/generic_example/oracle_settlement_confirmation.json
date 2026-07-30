@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "feature": "instant_transfer",
+  "scenario_id": "oracle_settlement_confirmation",
+  "description": "A fictional transfer is expected to settle in the Oracle ledger a short time after the API accepts it",
+  "endpoint": {
+    "method": "POST",
+    "path": "/orders"
+  },
+  "payload": {
+    "source_account": "{{valid_bank_account}}",
+    "destination_key": "{{valid_payment_key}}",
+    "customer_id": "{{fake_customer_id}}",
+    "amount": 150.0
+  },
+  "correlation": {
+    "source": "api_response",
+    "field": "$.id"
+  },
+  "api_checks": [
+    { "id": "http_status", "field": "status_code", "operator": "equals", "expected_value": 201 },
+    { "id": "initial_status", "field": "$.status", "operator": "equals", "expected_value": "PENDING" }
+  ],
+  "validations": [
+    {
+      "id": "ledger_settlement_status",
+      "connector": "oracle_main",
+      "query": "SELECT status FROM fictional_ledger WHERE transfer_id = :correlation_id",
+      "field": "status",
+      "operator": "equals",
+      "expected_value": "SETTLED"
+    }
+  ]
+}

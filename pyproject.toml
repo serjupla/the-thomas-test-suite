@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "the-thomas-test-suite"
-version = "0.2.0"
+version = "0.3.0"
 description = "Data-driven API test automation with time-decoupled data validation across heterogeneous data sources."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,6 +30,7 @@ dependencies = [
     "rich>=13.0",
     "requests>=2.31",
     "jsonpath-ng>=1.6",
+    "jinja2>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +38,7 @@ dev = [
     "pytest>=8.0",
     "responses>=0.25",
     "ruff>=0.6",
+    "beautifulsoup4>=4.12",
 ]
 oracle = ["oracledb"]
 db2 = ["ibm-db"]
@@ -51,6 +53,9 @@ Changelog = "https://github.com/serjupla/the-thomas-test-suite/blob/main/CHANGEL
 [project.scripts]
 thomas = "thomas.cli:main"
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
@@ -58,6 +63,8 @@ where = ["src"]
 thomas = [
     "schemas/*.json",
     "scaffold/**/*",
+    "report/*.j2",
+    "report/assets/*.svg",
 ]
 
 [tool.ruff]

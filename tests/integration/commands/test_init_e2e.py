@@ -15,9 +15,9 @@ class TestInitE2E:
             dest = Path(tmpdir) / "test-project"
 
             # First run: create project
-            result = scaffold_project(destination=dest)
-            assert result.success
-            assert len(result.created) > 0
+            result1 = scaffold_project(destination=dest)
+            assert result1.success
+            assert len(result1.created) > 0
             assert (dest / "scenarios").exists()
             assert (dest / "config/environments/example.json.dist").exists()
             assert (dest / ".gitignore").exists()

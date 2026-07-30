@@ -4,15 +4,15 @@
 import json
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Any, ClassVar
+from typing import Any
 
 
 class MockHandler(BaseHTTPRequestHandler):
     """Simple HTTP request handler for mock API."""
 
     # In-memory state for demo purposes
-    _charges: ClassVar[dict[str, Any]] = {}
-    _charge_counter: ClassVar[int] = 1000
+    _charges: dict[str, Any] = {}
+    _charge_counter = 1000
 
     def do_GET(self):
         """Handle GET requests."""
@@ -58,11 +58,11 @@ class MockHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(charge).encode())
-        except ValueError:
+        except Exception as e:
             self.send_response(400)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": "Invalid JSON"}).encode())
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
 
     def _handle_transfers(self, body: bytes):
         """Handle POST /transfers request."""
@@ -94,11 +94,11 @@ class MockHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(transfer).encode())
-        except ValueError:
+        except Exception as e:
             self.send_response(500)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": "Invalid JSON"}).encode())
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
 
     def log_message(self, format, *args):
         """Suppress default logging."""

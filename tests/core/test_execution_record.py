@@ -184,3 +184,76 @@ def test_execution_record_includes_both_metadata_fields():
 
     assert record["company_name"] == "Example Corp"
     assert record["department_name"] == "Payments QA"
+
+
+def test_execution_record_with_metadata_validates_against_schema():
+    record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result()],
+        company_name="Example Corp",
+        department_name="Payments QA",
+    )
+
+    jsonschema.validate(record, load_execution_schema())
+
+
+# Feature 010: prepared_variables tests
+
+
+def test_execution_record_includes_prepared_variables_when_present():
+    record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result()],
+        prepared_variables={"customer_id": "999999", "api_token": "sk-secret-123"},
+    )
+
+    assert record["prepared_variables"] == {"customer_id": "999999", "api_token": "sk-secret-123"}
+
+
+def test_execution_record_omits_prepared_variables_when_none():
+    record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result()],
+    )
+
+    assert "prepared_variables" not in record
+
+
+def test_execution_record_omits_prepared_variables_when_empty_dict():
+    record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result()],
+        prepared_variables={},
+    )
+
+    assert "prepared_variables" not in record
+
+
+def test_execution_record_with_prepared_variables_validates_against_schema():
+    record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result()],
+        prepared_variables={"customer_id": "999999"},
+    )
+
+    jsonschema.validate(record, load_execution_schema())

@@ -1,0 +1,1543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ strings.report_title }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@400;600&display=swap');
+  :root {
+    --color-bg: #f2f2f3;
+    --color-surface: #ffffff;
+    --color-text: #1d1f20;
+    --color-text-muted: #626466;
+    --color-divider: #e7e7ea;
+    --color-accent: #0241ae;
+    --color-accent-2: #4e7ac6;
+    --color-status-approved: #1f9d55;
+    --color-status-approved-bg: #ecf7f1;
+    --color-status-failed: #d94759;
+    --color-status-failed-bg: #fce8eb;
+    --color-status-awaiting: #c98b2e;
+    --color-status-awaiting-bg: #fff4e0;
+    --color-neutral-100: #f5f5f8;
+    --color-neutral-200: #e7e7ea;
+    --color-neutral-300: #d4d4d7;
+    --color-neutral-400: #b7b7ba;
+    --color-neutral-500: #98989b;
+    --color-neutral-600: #7a7a7d;
+    --color-neutral-700: #5d5d60;
+    --color-neutral-800: #424244;
+    --color-neutral-900: #2b2b2d;
+    --font-body: "Barlow", system-ui, sans-serif;
+    --font-heading: "Barlow Condensed", system-ui, sans-serif;
+    --size-h1: 42px;
+    --size-h2: 32px;
+    --size-h3: 25px;
+    --size-h4: 20px;
+    --size-h5: 16px;
+    --size-h6: 13px;
+    --size-body: 15px;
+    --size-label: 12px;
+    --size-caption: 11px;
+    --weight-body: 400;
+    --weight-semibold: 500;
+    --weight-bold: 700;
+    --weight-heading: 600;
+    --line-height-tight: 1.12;
+    --line-height-normal: 1.55;
+    --letter-spacing-tight: -0.015em;
+    --letter-spacing-normal: 0;
+    --letter-spacing-spaced: 0.08em;
+    --space-1: 3.4px;
+    --space-2: 6.8px;
+    --space-3: 10.2px;
+    --space-4: 13.6px;
+    --space-6: 20.4px;
+    --space-8: 27.2px;
+    --radius-sm: 2px;
+    --radius-md: 4px;
+    --radius-lg: 7px;
+    --radius-xl: 14px;
+    --shadow-sm: 0 1px 2px color-mix(in srgb, #2b2b2d 14%, transparent);
+    --shadow-md: 0 3px 10px color-mix(in srgb, #2b2b2d 16%, transparent);
+    --shadow-lg: 0 12px 32px color-mix(in srgb, #2b2b2d 22%, transparent);
+  }
+  :root[data-theme="dark"] {
+    --color-bg: #161820;
+    --color-surface: #1d2330;
+    --color-text: #e7e9ed;
+    --color-text-muted: #a9acb3;
+    --color-divider: #2c3139;
+    --color-accent: #5b8ff0;
+    --color-accent-2: #446bb4;
+    --color-status-approved: #34d399;
+    --color-status-approved-bg: #0d4d3b;
+    --color-status-failed: #f87171;
+    --color-status-failed-bg: #5a1f1f;
+    --color-status-awaiting: #fbbf24;
+    --color-status-awaiting-bg: #543c1d;
+    --color-neutral-100: #2c3139;
+    --color-neutral-200: #3a414b;
+    --color-neutral-300: #4a535e;
+    --color-neutral-400: #606b78;
+    --color-neutral-500: #75818f;
+    --color-neutral-600: #8a96a6;
+    --color-neutral-700: #9faabe;
+    --color-neutral-800: #b5bfd0;
+    --color-neutral-900: #cbd4e0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-bg: #161820;
+      --color-surface: #1d2330;
+      --color-text: #e7e9ed;
+      --color-text-muted: #a9acb3;
+      --color-divider: #2c3139;
+      --color-accent: #5b8ff0;
+      --color-accent-2: #446bb4;
+      --color-status-approved: #34d399;
+      --color-status-approved-bg: #0d4d3b;
+      --color-status-failed: #f87171;
+      --color-status-failed-bg: #5a1f1f;
+      --color-status-awaiting: #fbbf24;
+      --color-status-awaiting-bg: #543c1d;
+      --color-neutral-100: #2c3139;
+      --color-neutral-200: #3a414b;
+      --color-neutral-300: #4a535e;
+      --color-neutral-400: #606b78;
+      --color-neutral-500: #75818f;
+      --color-neutral-600: #8a96a6;
+      --color-neutral-700: #9faabe;
+      --color-neutral-800: #b5bfd0;
+      --color-neutral-900: #cbd4e0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 0 3rem 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: var(--size-body);
+    line-height: var(--line-height-normal);
+    font-weight: var(--weight-body);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: var(--weight-heading);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+    margin: 0 0 var(--space-2) 0;
+  }
+  h3 { font-size: var(--size-h5); }
+  a { color: var(--color-accent); }
+  code {
+    font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+    font-size: var(--size-caption);
+  }
+
+  /* Top bar (faixa 1) */
+  .report-topbar {
+    padding: var(--space-2) 0;
+    background: var(--color-neutral-100);
+    border-bottom: 1px solid var(--color-divider);
+    font-size: var(--size-label);
+    color: var(--color-text-muted);
+  }
+  .topbar-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+  }
+  .topbar-heading { display: flex; align-items: center; gap: var(--space-2); }
+  .topbar-brand-link { display: flex; align-items: center; gap: var(--space-3); text-decoration: none; }
+  .topbar-brand-icon svg { width: 20px; height: 20px; display: block; overflow: hidden; }
+  .topbar-brand-name { font-weight: var(--weight-bold); letter-spacing: 0.03em; color: var(--color-accent); }
+  .topbar-title { color: var(--color-text); }
+  .icon-btn {
+    margin-left: auto;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--color-text-muted);
+    border-radius: var(--radius-md);
+    padding: var(--space-1) var(--space-2);
+    font: inherit;
+  }
+  .icon-btn svg { width: 18px; height: 18px; display: block; overflow: hidden; }
+  .icon-btn .icon-sun { display: none; }
+  :root[data-theme="dark"] .icon-btn .icon-moon { display: none; }
+  :root[data-theme="dark"] .icon-btn .icon-sun { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .icon-btn .icon-moon { display: none; }
+    :root:not([data-theme="light"]) .icon-btn .icon-sun { display: block; }
+  }
+  .icon-btn:hover { border-color: var(--color-divider); color: var(--color-text); }
+  .icon-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+  /* Banner (faixa 2) */
+  .report-banner {
+    padding: var(--space-6) 0;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-divider);
+  }
+  .banner-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+  }
+  .banner-left { display: flex; align-items: center; gap: var(--space-4); }
+  .company-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 48px;
+    height: 48px;
+    padding: var(--space-1);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-xl);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+  }
+  .company-logo svg { height: 100%; width: 100%; display: block; }
+  .banner-company { font-size: var(--size-h4); font-weight: var(--weight-bold); }
+  .banner-meta { font-size: var(--size-label); color: var(--color-text-muted); margin-top: var(--space-1); }
+  .tab-nav {
+    display: flex;
+    gap: var(--space-1);
+    background: var(--color-bg);
+    border: 1px solid var(--color-divider);
+    border-radius: 999px;
+    padding: var(--space-1);
+  }
+  .tab-btn {
+    font: inherit;
+    cursor: pointer;
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1.5px solid transparent;
+    border-radius: 999px;
+    padding: var(--space-2) var(--space-4);
+    font-weight: var(--weight-semibold);
+    font-size: var(--size-label);
+  }
+  .tab-btn.active {
+    background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .tab-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: var(--space-6); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+  }
+  .status-aprovado { background: var(--color-status-approved-bg); color: var(--color-status-approved); }
+  .status-reprovado { background: var(--color-status-failed-bg); color: var(--color-status-failed); }
+  .status-aguardando { background: var(--color-status-awaiting-bg); color: var(--color-status-awaiting); }
+  span.status-icon.status-aprovado::before { content: "✓"; }
+  span.status-icon.status-reprovado::before { content: "✕"; }
+  span.status-icon { text-align: center; line-height: 14px; font-size: 10px; font-weight: var(--weight-bold); }
+  .status-icon.status-aguardando svg { width: 9px; height: 9px; }
+  .icon-stroke-awaiting { width: 0.85em; height: 0.85em; vertical-align: -0.1em; }
+
+  /* Dashboard summary */
+  .dashboard-summary {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-4);
+  }
+  .stat-card {
+    flex: 1 1 0;
+    min-width: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-xl);
+    padding: var(--space-4) var(--space-6);
+    box-shadow: var(--shadow-sm);
+  }
+  .stat-card--result {
+    flex: 2.2 1 0;
+    min-width: 300px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--space-3);
+  }
+  .result-card-row { display: flex; align-items: center; gap: var(--space-4); }
+  .result-card-text { display: flex; flex-direction: column; gap: var(--space-2); }
+  .stat-card-label-top { font-size: var(--size-label); color: var(--color-text-muted); font-weight: var(--weight-body); padding-left: var(--space-4); }
+  .donut {
+    position: relative;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .donut-hole {
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: var(--color-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .donut-hole svg { width: 24px; height: 24px; }
+  .donut-hole.status-aprovado { color: var(--color-status-approved); }
+  .donut-hole.status-reprovado { color: var(--color-status-failed); }
+  .donut-hole.status-aguardando { color: var(--color-status-awaiting); }
+  .overall-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-radius: 999px;
+    font-weight: var(--weight-bold);
+    font-size: var(--size-h6);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .stat-card-icon {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stat-card-icon svg { width: 22px; height: 22px; }
+  .stat-card--total .stat-card-icon { background: color-mix(in srgb, var(--color-accent) 14%, transparent); color: var(--color-accent); }
+  .stat-card--passed .stat-card-icon { background: var(--color-status-approved-bg); color: var(--color-status-approved); }
+  .stat-card--failed .stat-card-icon { background: var(--color-status-failed-bg); color: var(--color-status-failed); }
+  .stat-card--awaiting .stat-card-icon { background: var(--color-status-awaiting-bg); color: var(--color-status-awaiting); }
+  .stat-card-body { display: flex; flex-direction: column; gap: 2px; }
+  .stat-card-label { font-size: var(--size-label); color: var(--color-text-muted); }
+  .stat-card-value { font-size: calc(var(--size-h5) * 1.2); font-weight: var(--weight-bold); }
+  .stat-card--total .stat-card-value { color: var(--color-accent); }
+  .stat-card--passed .stat-card-value { color: var(--color-status-approved); }
+  .stat-card--failed .stat-card-value { color: var(--color-status-failed); }
+  .stat-card--awaiting .stat-card-value { color: var(--color-status-awaiting); }
+  .stat-card-pct { font-size: var(--size-label); font-weight: var(--weight-semibold); margin-left: var(--space-2); }
+
+  .empty-state {
+    background: var(--color-surface);
+    border: 1px dashed var(--color-divider);
+    border-radius: var(--radius-xl);
+    padding: var(--space-8);
+    text-align: center;
+    color: var(--color-text-muted);
+  }
+
+  /* Mini-cards */
+  .mini-cards-block {
+    background: var(--color-surface);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-xl);
+    padding: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+  .mini-cards-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); }
+  .mini-cards-header > span { font-weight: var(--weight-semibold); font-size: var(--size-h6); }
+  .grouping-toggle {
+    display: flex;
+    gap: var(--space-1);
+    background: var(--color-bg);
+    border-radius: 999px;
+    padding: var(--space-1);
+    font-size: var(--size-caption);
+  }
+  .grouping-btn {
+    font: inherit;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: var(--space-1) var(--space-3);
+    color: var(--color-text-muted);
+  }
+  .grouping-btn.active { background: var(--color-surface); border-color: var(--color-divider); color: var(--color-text); font-weight: var(--weight-semibold); box-shadow: var(--shadow-sm); }
+  .mini-card-scroll { display: flex; gap: var(--space-3); overflow-x: auto; padding-bottom: var(--space-1); }
+  .mini-card-scroll.hidden { display: none; }
+  .mini-card {
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
+    flex: none;
+    min-width: 140px;
+    background: var(--color-bg);
+    border: 1.5px solid var(--color-divider);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+  }
+  .mini-card.status-aprovado { background: var(--color-status-approved-bg); border-color: var(--color-status-approved); }
+  .mini-card.status-reprovado { background: var(--color-status-failed-bg); border-color: var(--color-status-failed); }
+  .mini-card.status-aguardando { background: var(--color-status-awaiting-bg); border-color: var(--color-status-awaiting); }
+  .mini-card.active { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+  .mini-card-name { display: block; font-size: var(--size-caption); color: var(--color-text-muted); margin-bottom: var(--space-1); }
+  .mini-card-counts { display: flex; align-items: center; gap: var(--space-3); font-weight: var(--weight-bold); font-size: var(--size-h6); }
+  .mini-card-count-item { display: inline-flex; align-items: center; gap: 3px; }
+  .mini-card-count-item.count-passed { color: var(--color-status-approved); }
+  .mini-card-count-item.count-failed { color: var(--color-status-failed); }
+  .mini-card-count-item.count-awaiting { color: var(--color-status-awaiting); }
+  .mini-card-total { color: var(--color-text-muted); font-weight: normal; margin-left: 2px; }
+
+  /* Filters */
+  .filter-bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-xl);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+  .chip-group { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .chip {
+    cursor: pointer;
+    user-select: none;
+    font-size: var(--size-label);
+    padding: var(--space-2) var(--space-3);
+    border-radius: 999px;
+    border: 1px solid var(--color-divider);
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+  .chip.on { background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface)); color: var(--color-accent); border-color: var(--color-accent); font-weight: var(--weight-semibold); }
+  .search-input {
+    font: inherit;
+    font-size: var(--size-label);
+    padding: var(--space-2) var(--space-3);
+    border-radius: 999px;
+    border: 1px solid var(--color-divider);
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-width: 200px;
+  }
+  .active-filter-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--size-label);
+    color: var(--color-accent);
+    margin-left: auto;
+  }
+  .active-filter-indicator.hidden { display: none; }
+  .active-filter-indicator button {
+    font: inherit;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--color-accent);
+    font-weight: var(--weight-bold);
+  }
+
+  /* Scenario groups / list */
+  .scenario-list-view.hidden { display: none; }
+  details.scenario-group {
+    background: var(--color-surface);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-3);
+    overflow: hidden;
+  }
+  details.scenario-group > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: var(--space-3);
+    font-weight: var(--weight-semibold);
+    font-size: var(--size-h6);
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+  details.scenario-group > summary::-webkit-details-marker { display: none; }
+  .group-counts { font-weight: var(--weight-body); color: var(--color-text-muted); font-size: var(--size-label); }
+  .scenario-row { border-top: 1px solid var(--color-divider); }
+  .scenario-row:first-child { border-top: none; }
+  .scenario-row.filtered-out { display: none; }
+  .scenario-row-summary {
+    font: inherit;
+    cursor: pointer;
+    width: 100%;
+    background: transparent;
+    border: none;
+    text-align: left;
+    display: grid;
+    grid-template-columns: 20px 1.6fr auto auto auto 16px;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    color: var(--color-text);
+  }
+  .scenario-row-summary:hover { background: var(--color-neutral-100); }
+  .scenario-name { font-weight: var(--weight-semibold); }
+  .scenario-tag {
+    font-size: var(--size-caption);
+    color: var(--color-text-muted);
+    background: var(--color-neutral-100);
+    border: 1px solid var(--color-divider);
+    border-radius: 999px;
+    padding: 2px var(--space-2);
+  }
+  .scenario-time, .scenario-duration { font-size: var(--size-caption); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+  .scenario-duration { text-align: right; min-width: 3.5rem; }
+  .chevron { color: var(--color-neutral-500); }
+  .scenario-detail-panel { background: var(--color-bg); border-top: 1px solid var(--color-divider); padding: var(--space-4); }
+  .scenario-detail-panel[hidden] { display: none; }
+
+  details.detail-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-2);
+    overflow: hidden;
+  }
+  details.detail-section > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: var(--space-3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: var(--weight-semibold);
+    font-size: var(--size-label);
+  }
+  details.detail-section > summary::-webkit-details-marker { display: none; }
+  .detail-section-meta { font-weight: var(--weight-body); color: var(--color-text-muted); font-size: var(--size-caption); }
+  .detail-section-body { padding: 0 var(--space-3) var(--space-3); }
+  .detail-meta-row { font-size: var(--size-caption); color: var(--color-text-muted); margin-bottom: var(--space-2); }
+  details.sub-collapsible { margin: var(--space-2) 0; }
+  details.sub-collapsible > summary { cursor: pointer; font-size: var(--size-caption); color: var(--color-accent); font-weight: var(--weight-semibold); }
+  .code-block-wrap { position: relative; }
+  pre.code-block {
+    background: var(--color-bg);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    overflow-x: auto;
+    font-size: var(--size-caption);
+  }
+  .copy-btn {
+    font: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1);
+    color: var(--color-accent);
+    float: right;
+  }
+  .copy-btn svg { width: 14px; height: 14px; display: block; }
+  .copy-btn .copy-icon-success { display: none; }
+  .copy-btn.copied { color: var(--color-status-approved); }
+  .copy-btn.copied .copy-icon-idle { display: none; }
+  .copy-btn.copied .copy-icon-success { display: block; }
+  .status-code-badge {
+    font-size: var(--size-caption);
+    font-weight: var(--weight-bold);
+    padding: 2px var(--space-2);
+    border-radius: 999px;
+  }
+  .status-code-badge.code-2xx { background: var(--color-status-approved-bg); color: var(--color-status-approved); }
+  .status-code-badge.code-3xx { background: var(--color-neutral-100); color: var(--color-text-muted); }
+  .status-code-badge.code-4xx { background: var(--color-status-awaiting-bg); color: var(--color-status-awaiting); }
+  .status-code-badge.code-5xx { background: var(--color-status-failed-bg); color: var(--color-status-failed); }
+  .technical-error-block {
+    background: var(--color-status-failed-bg);
+    color: var(--color-status-failed);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+  }
+  .pending-placeholder { color: var(--color-status-awaiting); }
+  table.kv-table { width: 100%; border-collapse: collapse; font-size: var(--size-caption); }
+  table.kv-table th, table.kv-table td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-divider); }
+  table.kv-table th { color: var(--color-text-muted); text-transform: uppercase; letter-spacing: var(--letter-spacing-spaced); font-size: 10px; }
+  table.kv-table tr.row-failed { background: var(--color-status-failed-bg); }
+  .outcome-pill { font-size: var(--size-caption); font-weight: var(--weight-semibold); padding: 2px var(--space-2); border-radius: var(--radius-sm); }
+  .outcome-pill.passed { background: var(--color-status-approved-bg); color: var(--color-status-approved); }
+  .outcome-pill.failed { background: var(--color-status-failed-bg); color: var(--color-status-failed); }
+  .outcome-pill.technical_error { background: var(--color-neutral-100); color: var(--color-text-muted); }
+  details.round-row { border: 1px solid var(--color-divider); border-radius: var(--radius-md); margin-bottom: var(--space-2); overflow: hidden; }
+  details.round-row > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: var(--space-2) var(--space-3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--size-caption);
+    background: var(--color-bg);
+  }
+  details.round-row > summary::-webkit-details-marker { display: none; }
+  .round-detail { padding: var(--space-2); }
+  .no-value { color: var(--color-text-muted); }
+
+  /* Environment view */
+  .env-block {
+    background: var(--color-surface);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-xl);
+    padding: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-3);
+  }
+  .env-block h3 { display: flex; align-items: center; gap: var(--space-2); }
+  .env-block h3 .env-count { color: var(--color-text-muted); font-weight: var(--weight-body); font-size: var(--size-label); }
+  .env-grid { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: var(--space-3); }
+  .env-field-label { display: block; font-size: var(--size-caption); color: var(--color-text-muted); }
+  .env-field-value { font-weight: var(--weight-semibold); }
+  .env-inline-fields { display: flex; gap: var(--space-6); flex-wrap: wrap; margin-bottom: var(--space-2); }
+  .ssl-ok { color: var(--color-status-approved); }
+  .ssl-off { color: var(--color-status-failed); }
+  details.env-subrow { border: 1px solid var(--color-divider); border-radius: var(--radius-md); margin-bottom: var(--space-2); overflow: hidden; }
+  details.env-subrow > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: var(--space-2) var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--size-label);
+  }
+  details.env-subrow > summary::-webkit-details-marker { display: none; }
+  .env-subrow-body { padding: var(--space-3); font-size: var(--size-caption); }
+  .link-btn { font: inherit; cursor: pointer; background: transparent; border: none; color: var(--color-accent); font-weight: var(--weight-semibold); padding: 0; }
+  .sensitive-value { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+  .mask-value { font-family: monospace; }
+  .mask-value.no-value { font-style: italic; }
+  .reveal-btn {
+    flex: none;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--color-text-muted);
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+  }
+  .reveal-btn:hover { color: var(--color-text); }
+  .reveal-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .reveal-btn svg { width: 16px; height: 16px; display: block; }
+  .reveal-btn .icon-eye-off { display: none; }
+  .env-signature-block { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+  .env-signature-block h3 { margin: 0; }
+  .signature-value { font-size: var(--size-caption); color: var(--color-text-muted); }
+
+  /* Timeline */
+  .timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+  .timeline-header h3 { margin: 0; }
+  .gantt-view.hidden, .log-view.hidden { display: none; }
+  .gantt-ruler { display: flex; align-items: center; gap: var(--space-3); padding-bottom: var(--space-2); }
+  .gantt-ruler-spacer { width: 160px; flex: none; }
+  .gantt-ruler-spacer:last-child { width: 22px; }
+  .gantt-ruler-track { position: relative; flex: 1; height: 1.2em; }
+  .gantt-ruler-tick { position: absolute; top: 0; transform: translateX(-50%); font-size: var(--size-caption); color: var(--color-text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .gantt-ruler-tick:first-child { transform: translateX(0); }
+  .gantt-ruler-tick:last-child { transform: translateX(-100%); }
+  .gantt-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; border-top: 1px solid var(--color-divider); }
+  .gantt-row:first-child { border-top: none; }
+  .gantt-row-label { font: inherit; cursor: pointer; background: transparent; border: none; width: 160px; flex: none; text-align: left; font-size: var(--size-label); font-weight: var(--weight-semibold); color: var(--color-text); }
+  .gantt-track { position: relative; flex: 1; height: 10px; background: var(--color-neutral-100); border-radius: 5px; }
+  .gantt-marker { position: absolute; top: -2px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-neutral-500); transform: translateX(-50%); }
+  .gantt-marker-validation.status-aprovado-marker { background: var(--color-status-approved); }
+  .gantt-marker-validation.status-reprovado-marker { background: var(--color-status-failed); }
+  .gantt-badge { width: 22px; height: 22px; border-radius: var(--radius-sm); flex: none; text-align: center; line-height: 22px; }
+  .timeline-local-log { background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-md); padding: var(--space-3); margin: var(--space-2) 0 var(--space-3) 172px; font-size: var(--size-caption); }
+  .timeline-local-log.hidden { display: none; }
+  .log-entry { display: flex; gap: var(--space-3); padding: var(--space-1) 0; }
+  .log-time { color: var(--color-text-muted); font-variant-numeric: tabular-nums; min-width: 11rem; }
+  .latency-block { background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-xl); padding: var(--space-4) var(--space-6); margin-top: var(--space-4); }
+  .latency-stats { display: flex; gap: var(--space-6); font-size: var(--size-label); color: var(--color-text-muted); margin-bottom: var(--space-4); }
+  .latency-stats b { color: var(--color-text); }
+  .latency-chart-wrap { display: flex; gap: var(--space-6); align-items: flex-start; flex-wrap: wrap; }
+  .latency-chart-main { flex: 1 1 0%; min-width: 280px; }
+  .latency-plot-row { display: flex; }
+  .latency-y-axis { position: relative; width: 44px; flex: none; height: 260px; }
+  .latency-plot { position: relative; flex: 1; height: 260px; background: var(--color-bg); border: 1px solid var(--color-divider); border-radius: var(--radius-md); overflow: hidden; }
+  .latency-chart { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .latency-gridline { stroke: var(--color-divider); stroke-width: 1; }
+  .latency-point { stroke: var(--color-bg); stroke-width: 0.5; }
+  .latency-x-axis-row { display: flex; margin-top: var(--space-2); }
+  .latency-x-axis-spacer { width: 44px; flex: none; }
+  .latency-x-axis-track { position: relative; flex: 1; height: 1.2em; }
+  .latency-axis-label { position: absolute; font-family: var(--font-body); font-size: var(--size-caption); color: var(--color-text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .latency-y-axis .latency-axis-label { right: 8px; transform: translateY(-50%); }
+  .latency-x-axis-track .latency-axis-label { top: 0; transform: translateX(-50%); }
+  .latency-x-axis-track .latency-axis-label:first-child { transform: translateX(0); }
+  .latency-x-axis-track .latency-axis-label:last-child { transform: translateX(-100%); }
+  .latency-legend { display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--size-caption); padding-top: var(--space-2); }
+  .legend-item { display: flex; align-items: center; gap: var(--space-2); }
+  .legend-item-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
+  @media (max-width: 767px) {
+    body { font-size: 14px; }
+    .container { padding: var(--space-3); }
+    .banner-inner { flex-direction: column; align-items: flex-start; }
+    .scenario-row-summary { grid-template-columns: 1fr; }
+    .env-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="report-topbar">
+  <div class="topbar-inner">
+    <div class="topbar-heading">
+      <a class="topbar-brand-link" href="https://github.com/serjupla/the-thomas-test-suite" target="_blank" rel="noopener">
+        <span class="topbar-brand-icon">{{ thomas_logo_svg|safe }}</span>
+        <span class="topbar-brand-name">THE THOMAS Test Suite</span>
+      </a>
+      <span class="topbar-title">- {{ strings.report_title }}</span>
+    </div>
+    <button type="button" class="icon-btn" id="dark-mode-toggle" title="{{ strings.dark_mode_toggle }}">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="report-banner">
+  <div class="banner-inner">
+  <div class="banner-left">
+    {% if company_logo_svg %}<span class="company-logo">{{ company_logo_svg|safe }}</span>{% endif %}
+    <div class="banner-text">
+      <div class="banner-company">{{ header.company_name or header.system_name }}</div>
+      <div class="banner-meta">
+        {% if header.department_name %}{{ header.department_name }} &middot; {% endif %}
+        {{ header.system_name }} &middot; {{ strings.banner_generated_at_prefix }} {{ header.generated_at }}
+      </div>
+    </div>
+  </div>
+  <nav class="tab-nav">
+    <button type="button" class="tab-btn active" data-tab="dashboard">{{ strings.tab_dashboard }}</button>
+    <button type="button" class="tab-btn" data-tab="environment">{{ strings.tab_environment }}</button>
+    <button type="button" class="tab-btn" data-tab="timeline">{{ strings.tab_timeline }}</button>
+  </nav>
+  </div>
+</div>
+
+<div class="container">
+
+{% macro checks_table_api(checks) %}
+<table class="kv-table">
+  <thead><tr><th>{{ strings.col_id }}</th><th>{{ strings.col_operator }}</th><th>{{ strings.col_expected }}</th><th>{{ strings.col_obtained }}</th><th>{{ strings.col_result }}</th></tr></thead>
+  <tbody>
+    {% for check in checks %}
+    <tr class="{{ 'row-failed' if not check.passed else '' }}">
+      <td>{{ check.id }}</td>
+      <td>{{ check.operator }}</td>
+      <td>{{ check.expected }}</td>
+      <td>{{ check.obtained }}</td>
+      <td><span class="outcome-pill {{ check.outcome }}">{{ strings.result_passed if check.passed else strings.result_failed }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% macro checks_table_validation(checks) %}
+<table class="kv-table">
+  <thead><tr><th>{{ strings.col_id }}</th><th>{{ strings.col_connector }}</th><th>{{ strings.col_operator }}</th><th>{{ strings.col_expected }}</th><th>{{ strings.col_obtained }}</th><th>{{ strings.col_result }}</th></tr></thead>
+  <tbody>
+    {% for check in checks %}
+    <tr class="{{ 'row-failed' if check.outcome != 'passed' else '' }}">
+      <td>{{ check.id }}</td>
+      <td>{{ check.connector }}</td>
+      <td>{{ check.operator }}</td>
+      <td>{{ check.expected }}</td>
+      <td>{{ check.obtained }}</td>
+      <td>
+        <span class="outcome-pill {{ check.outcome }}">
+          {%- if check.outcome == "passed" -%}{{ strings.result_passed }}
+          {%- elif check.outcome == "failed" -%}{{ strings.result_failed }}
+          {%- else -%}{{ strings.result_technical_error }}: {{ check.technical_error }}
+          {%- endif -%}
+        </span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% macro status_icon(status, extra_class="", boxed=true) %}{% if boxed %}<span class="status-icon status-{{ status }}{{ (' ' ~ extra_class) if extra_class else '' }}">{% if status == "aguardando" %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>{% endif %}</span>{% elif status == "aguardando" %}<svg class="icon-stroke-awaiting{{ (' ' ~ extra_class) if extra_class else '' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>{% endif %}{% endmacro %}
+
+{% macro copy_button(target_id, extra_class="", extra_style="") %}<button type="button" class="copy-btn{{ (' ' ~ extra_class) if extra_class else '' }}"{% if extra_style %} style="{{ extra_style }}"{% endif %} data-copy-target="{{ target_id }}" aria-label="{{ strings.copy_label }}" title="{{ strings.copy_label }}"><svg class="copy-icon-idle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="13" height="13" rx="2"/><rect x="8" y="8" width="13" height="13" rx="2"/></svg><svg class="copy-icon-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></button>{% endmacro %}
+
+{% macro scenario_row(scenario, tag_value, view_id) %}
+{% set uid = scenario.scenario_id ~ "-" ~ view_id %}
+<div class="scenario-row" data-scenario-id="{{ scenario.scenario_id }}" data-status="{{ scenario.final_status }}" data-name="{{ scenario.scenario_id|lower }}">
+  <button type="button" class="scenario-row-summary" data-scenario-toggle="{{ uid }}" aria-expanded="false">
+    {{ status_icon(scenario.status_pt) }}
+    <span class="scenario-name">{{ scenario.scenario_id }}</span>
+    <span class="scenario-tag">{{ tag_value if tag_value else "/" }}</span>
+    <span class="scenario-time" title="{{ scenario.time_full }}">{{ scenario.time_short }}</span>
+    <span class="scenario-duration">{{ scenario.duration_display }}</span>
+    <span class="chevron">▸</span>
+  </button>
+  <div class="scenario-detail-panel" id="detail-{{ uid }}" hidden>
+    <details class="detail-section">
+      <summary>{{ strings.section_requisicao }} <span class="detail-section-meta">{{ scenario.detail.requisicao.method }} {{ scenario.detail.requisicao.path }}</span></summary>
+      <div class="detail-section-body">
+        <div class="detail-meta-row">{{ strings.correlation_id_label }}: <code>{{ scenario.detail.requisicao.correlation_id or strings.no_value_placeholder }}</code></div>
+        {% if scenario.detail.requisicao.headers %}
+        <details class="sub-collapsible">
+          <summary>{{ strings.headers_label }} ({{ scenario.detail.requisicao.headers|length }})</summary>
+          <table class="kv-table"><tbody>
+            {% for key, value in scenario.detail.requisicao.headers.items() %}<tr><td>{{ key }}</td><td>{{ value }}</td></tr>{% endfor %}
+          </tbody></table>
+        </details>
+        {% endif %}
+        <div class="code-block-wrap">
+          {{ copy_button("payload-" ~ uid) }}
+          <pre class="code-block" id="payload-{{ uid }}">{{ scenario.detail.requisicao.payload|tojson(indent=2) }}</pre>
+        </div>
+      </div>
+    </details>
+    <details class="detail-section">
+      <summary>
+        {{ strings.section_resposta }}
+        {% if scenario.detail.resposta.technical_error %}
+        <span class="detail-section-meta outcome-pill technical_error">{{ strings.result_technical_error }}</span>
+        {% else %}
+        <span class="status-code-badge code-{{ scenario.detail.resposta.status_code_class }}">{{ scenario.detail.resposta.status_code }}</span>
+        {% endif %}
+      </summary>
+      <div class="detail-section-body">
+        {% if scenario.detail.resposta.technical_error %}
+        <div class="technical-error-block">⚠ {{ scenario.detail.resposta.technical_error }}</div>
+        {% else %}
+        <div class="code-block-wrap">
+          {{ copy_button("body-" ~ uid) }}
+          <pre class="code-block" id="body-{{ uid }}">{{ scenario.detail.resposta.body|tojson(indent=2) }}</pre>
+        </div>
+        {% endif %}
+      </div>
+    </details>
+    <details class="detail-section">
+      <summary>{{ strings.section_verificacoes }} {{ status_icon(scenario.detail.verificacoes.status, "detail-section-meta") }}</summary>
+      <div class="detail-section-body">
+        {% if scenario.detail.verificacoes.checks %}
+        {{ checks_table_api(scenario.detail.verificacoes.checks) }}
+        {% else %}
+        <p class="no-value">{{ strings.no_checks_placeholder }}</p>
+        {% endif %}
+      </div>
+    </details>
+    {% if scenario.detail.validacao is not none %}
+    <details class="detail-section">
+      <summary>
+        {{ strings.section_validacao }}
+        {% if scenario.detail.validacao.state == "pending" %}
+        {{ status_icon("aguardando", "detail-section-meta") }}
+        {% else %}
+        <span class="detail-section-meta">{{ strings.rounds_count_format.format(count=scenario.detail.validacao.rounds|length) }}</span>
+        {{ status_icon(scenario.detail.validacao.status, "detail-section-meta") }}
+        {% endif %}
+      </summary>
+      <div class="detail-section-body">
+        {% if scenario.detail.validacao.state == "pending" %}
+        <p class="pending-placeholder">{{ status_icon("aguardando", boxed=false) }} {{ strings.validation_pending_placeholder }}</p>
+        {% else %}
+        {% for round in scenario.detail.validacao.rounds %}
+        <details class="round-row" {% if loop.last %}open{% endif %}>
+          <summary>
+            <span>{{ strings.round_label_format.format(index=loop.index) }} — {{ round.timestamp }}</span>
+            {{ status_icon(round.status) }}
+          </summary>
+          <div class="round-detail">{{ checks_table_validation(round.checks) }}</div>
+        </details>
+        {% endfor %}
+        {% endif %}
+      </div>
+    </details>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+<!-- ============== DASHBOARD ============== -->
+<section id="tab-dashboard" class="tab-panel active">
+
+  <div class="dashboard-summary">
+    <div class="stat-card stat-card--result">
+      <div class="result-card-row">
+        <div class="donut" style="background: conic-gradient({{ dashboard.donut.gradient_stops }})">
+          <div class="donut-hole status-{{ dashboard.overall_status.status }}">
+            {% if dashboard.overall_status.status == "aprovado" %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+            {% elif dashboard.overall_status.status == "reprovado" %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            {% else %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            {% endif %}
+          </div>
+        </div>
+        <div class="result-card-text">
+          <span class="stat-card-label-top">{{ strings.dashboard_final_result_label }}</span>
+          <span class="overall-status-badge status-{{ dashboard.overall_status.status }}">{{ strings["status_" ~ dashboard.overall_status.status] }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--total">
+      <div class="stat-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      </div>
+      <div class="stat-card-body">
+        <span class="stat-card-label">{{ strings.dashboard_total_label }}</span>
+        <span class="stat-card-value">{{ dashboard.overall_status.total_count }}<span class="stat-card-pct">(100%)</span></span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--passed">
+      <div class="stat-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div class="stat-card-body">
+        <span class="stat-card-label">{{ strings.legend_passed }}</span>
+        <span class="stat-card-value">{{ dashboard.overall_status.passed_count }}<span class="stat-card-pct">({{ dashboard.overall_status.percentages.passed }}%)</span></span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--failed">
+      <div class="stat-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </div>
+      <div class="stat-card-body">
+        <span class="stat-card-label">{{ strings.legend_failed }}</span>
+        <span class="stat-card-value">{{ dashboard.overall_status.failed_count }}<span class="stat-card-pct">({{ dashboard.overall_status.percentages.failed }}%)</span></span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--awaiting">
+      <div class="stat-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      </div>
+      <div class="stat-card-body">
+        <span class="stat-card-label">{{ strings.legend_awaiting }}</span>
+        <span class="stat-card-value">{{ dashboard.overall_status.awaiting_count }}<span class="stat-card-pct">({{ dashboard.overall_status.percentages.awaiting }}%)</span></span>
+      </div>
+    </div>
+  </div>
+
+  {% if dashboard.overall_status.total_count == 0 %}
+  <div class="empty-state">{{ strings.empty_state_no_scenarios }}</div>
+  {% else %}
+
+  <div class="mini-cards-block">
+    <div class="mini-cards-header">
+      <span>{{ strings.mini_cards_title }}</span>
+      <div class="grouping-toggle" id="grouping-toggle">
+        <button type="button" class="grouping-btn" data-grouping="folder">{{ strings.grouping_folder }}</button>
+        <button type="button" class="grouping-btn active" data-grouping="feature">{{ strings.grouping_feature }}</button>
+      </div>
+    </div>
+    <div class="mini-card-scroll" data-grouping-view="feature">
+      {% for group in dashboard.groups.by_feature %}
+      <button type="button" class="mini-card status-{{ group.status }}" data-grouping="feature" data-group-name="{{ group.name }}">
+        <span class="mini-card-name">{{ group.name }}</span>
+        <span class="mini-card-counts">
+          <span class="mini-card-count-item count-passed">✓ {{ group.passed_count }}</span>
+          <span class="mini-card-count-item count-failed">✕ {{ group.failed_count }}</span>
+          <span class="mini-card-count-item count-awaiting">{{ status_icon("aguardando", boxed=false) }} {{ group.awaiting_count }}</span>
+          <span class="mini-card-total">/ {{ group.total_count }}</span>
+        </span>
+      </button>
+      {% endfor %}
+    </div>
+    <div class="mini-card-scroll hidden" data-grouping-view="folder">
+      {% for group in dashboard.groups.by_folder %}
+      <button type="button" class="mini-card status-{{ group.status }}" data-grouping="folder" data-group-name="{{ group.name }}">
+        <span class="mini-card-name">{{ group.name if group.name else "/" }}</span>
+        <span class="mini-card-counts">
+          <span class="mini-card-count-item count-passed">✓ {{ group.passed_count }}</span>
+          <span class="mini-card-count-item count-failed">✕ {{ group.failed_count }}</span>
+          <span class="mini-card-count-item count-awaiting">{{ status_icon("aguardando", boxed=false) }} {{ group.awaiting_count }}</span>
+          <span class="mini-card-total">/ {{ group.total_count }}</span>
+        </span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="chip-group">
+      <span class="chip status-chip" data-status="passed">{{ strings.filter_approved }}</span>
+      <span class="chip status-chip" data-status="failed">{{ strings.filter_failed }}</span>
+      <span class="chip status-chip" data-status="awaiting_validation">{{ strings.filter_awaiting }}</span>
+    </div>
+    <input type="search" class="search-input" id="scenario-search" placeholder="{{ strings.search_placeholder }}">
+    <div class="active-filter-indicator hidden" id="active-filter-indicator">
+      <span>{{ strings.active_filter_prefix }}</span>
+      <span id="active-filter-label"></span>
+      <button type="button" id="clear-group-filter">{{ strings.clear_filter_label }} ✕</button>
+    </div>
+  </div>
+
+  <div class="scenario-list-view" data-grouping-view="feature">
+    {% for group in dashboard.groups.by_feature %}
+    <details class="scenario-group" data-grouping="feature" data-group-name="{{ group.name }}" open>
+      <summary>
+        <span class="group-name">{{ group.name }}</span>
+        <span class="group-counts">{{ strings.group_counts_format.format(total=group.total_count, passed=group.passed_count, failed=group.failed_count) }}</span>
+      </summary>
+      <div class="scenario-rows">
+        {% for scenario in group.scenarios %}
+        {{ scenario_row(scenario, scenario.folder, "feature") }}
+        {% endfor %}
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+  <div class="scenario-list-view hidden" data-grouping-view="folder">
+    {% for group in dashboard.groups.by_folder %}
+    <details class="scenario-group" data-grouping="folder" data-group-name="{{ group.name }}" open>
+      <summary>
+        <span class="group-name">{{ group.name if group.name else "/" }}</span>
+        <span class="group-counts">{{ strings.group_counts_format.format(total=group.total_count, passed=group.passed_count, failed=group.failed_count) }}</span>
+      </summary>
+      <div class="scenario-rows">
+        {% for scenario in group.scenarios %}
+        {{ scenario_row(scenario, scenario.feature, "folder") }}
+        {% endfor %}
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+
+  {% endif %}
+</section>
+
+<!-- ============== AMBIENTE DE EXECUCAO ============== -->
+<section id="tab-environment" class="tab-panel">
+
+  <div class="env-block">
+    <h3>{{ strings.env_identificacao_title }}</h3>
+    <div class="env-grid">
+      <div><span class="env-field-label">{{ strings.env_field_environment }}</span><span class="env-field-value">{{ environment_view.identificacao.environment_name }}</span></div>
+      <div><span class="env-field-label">{{ strings.env_field_execution_id }}</span><span class="env-field-value">{{ environment_view.identificacao.execution_id }}</span></div>
+      <div><span class="env-field-label">{{ strings.env_field_thomas_version }}</span><span class="env-field-value">{{ environment_view.identificacao.thomas_version }}</span></div>
+      <div><span class="env-field-label">{{ strings.env_field_language }}</span><span class="env-field-value">{{ environment_view.identificacao.report_language }}</span></div>
+      <div><span class="env-field-label">{{ strings.env_field_start }}</span><span class="env-field-value">{{ environment_view.identificacao.start_timestamp }}</span></div>
+      <div><span class="env-field-label">{{ strings.env_field_timezone }}</span><span class="env-field-value">{{ environment_view.identificacao.timezone }}</span></div>
+    </div>
+  </div>
+
+  <div class="env-block">
+    <h3>{{ strings.env_api_title }}</h3>
+    <div class="env-inline-fields">
+      <div><span class="env-field-label">{{ strings.env_field_base_url }}</span><span class="env-field-value">{{ environment_view.api_under_test.base_url }}</span></div>
+      <div><span class="env-field-label">{{ strings.env_field_timeout }}</span><span class="env-field-value">{{ environment_view.api_under_test.timeout_seconds }}s</span></div>
+      <div><span class="env-field-label">{{ strings.env_field_ssl_verify }}</span><span class="env-field-value {{ 'ssl-ok' if environment_view.api_under_test.ssl_verify else 'ssl-off' }}">{{ strings.env_ssl_yes if environment_view.api_under_test.ssl_verify else strings.env_ssl_no }}</span></div>
+    </div>
+    {% if environment_view.api_under_test.headers %}
+    <details class="sub-collapsible">
+      <summary>{{ strings.headers_label }} ({{ environment_view.api_under_test.headers|length }})</summary>
+      <table class="kv-table"><tbody>
+        {% for header in environment_view.api_under_test.headers %}<tr><td>{{ header.key }}</td><td>{{ header.value }}</td></tr>{% endfor %}
+      </tbody></table>
+    </details>
+    {% endif %}
+  </div>
+
+  {% if environment_view.services_info %}
+  <div class="env-block">
+    <h3>{{ strings.env_services_title }} <span class="env-count">({{ environment_view.services_info|length }})</span></h3>
+    {% for service in environment_view.services_info %}
+    <details class="env-subrow">
+      <summary>
+        <span style="flex:1">{{ service.name }}</span>
+        {% if service.status == "ok" %}
+        <span class="status-icon status-aprovado"></span> {{ service.status_code }}
+        {% else %}
+        <span class="status-icon status-reprovado"></span>
+        {% endif %}
+      </summary>
+      <div class="env-subrow-body">
+        <div class="detail-meta-row">{{ strings.env_field_collected_at }}: {{ service.collected_at }}</div>
+        {% if service.status == "ok" %}
+        <table class="kv-table"><tbody>
+          {% for field in service.fields %}<tr><td>{{ field.key }}</td><td>{{ field.value }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}
+        <p class="technical-error-block">⚠ {{ service.error }}</p>
+        {% endif %}
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if environment_view.connectors %}
+  <div class="env-block">
+    <h3>{{ strings.env_connectors_title }} <span class="env-count">({{ environment_view.connectors|length }})</span></h3>
+    {% for connector in environment_view.connectors %}
+    <details class="env-subrow">
+      <summary>
+        <span style="flex:1">{{ connector.name }}</span>
+        <span class="env-field-label">{{ connector.type }}</span>
+      </summary>
+      <div class="env-subrow-body">
+        <table class="kv-table"><tbody>
+          {% for row in connector.config_masked %}
+          <tr>
+            <td>{{ row.key }}</td>
+            <td>
+              {% if row.is_sensitive %}
+              <div class="sensitive-value">
+                <span class="mask-value" data-real-value="{{ row.value }}" data-masked-value="{{ row.value_masked }}" data-empty-placeholder="{{ strings.no_value_placeholder }}">{{ row.value_masked }}</span>
+                <button type="button" class="reveal-btn" data-label-show="{{ strings.reveal_label }}" data-label-hide="{{ strings.hide_label }}" aria-label="{{ strings.reveal_label }}" title="{{ strings.reveal_label }}">
+                  <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-7-11-7a17.7 17.7 0 0 1 4.22-5.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a17.7 17.7 0 0 1-2.16 3.19"/><path d="M10.58 10.58a2 2 0 1 0 2.83 2.83"/><path d="M1 1l22 22"/></svg>
+                </button>
+              </div>
+              {% else %}
+              {{ row.value }}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody></table>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if environment_view.prepared_variables %}
+  <div class="env-block">
+    <h3>{{ strings.env_variables_title }} <span class="env-count">({{ environment_view.prepared_variables|length }})</span></h3>
+    <table class="kv-table">
+      <thead><tr><th>{{ strings.env_var_col_name }}</th><th>{{ strings.env_var_col_value }}</th></tr></thead>
+      <tbody>
+        {% for row in environment_view.prepared_variables %}
+        <tr>
+          <td>{{ row.key }}</td>
+          <td>
+            {% if row.is_sensitive %}
+            <div class="sensitive-value">
+              <span class="mask-value" data-real-value="{{ row.value }}" data-masked-value="{{ row.value_masked }}" data-empty-placeholder="{{ strings.no_value_placeholder }}">{{ row.value_masked }}</span>
+              <button type="button" class="reveal-btn" data-label-show="{{ strings.reveal_label }}" data-label-hide="{{ strings.hide_label }}" aria-label="{{ strings.reveal_label }}" title="{{ strings.reveal_label }}">
+                <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-7-11-7a17.7 17.7 0 0 1 4.22-5.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a17.7 17.7 0 0 1-2.16 3.19"/><path d="M10.58 10.58a2 2 0 1 0 2.83 2.83"/><path d="M1 1l22 22"/></svg>
+              </button>
+            </div>
+            {% else %}
+            {{ row.value }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="env-block env-signature-block">
+    <h3>{{ strings.env_signature_title }}</h3>
+    <span class="signature-value" id="report-signature">{{ environment_view.signature.algorithm }}: <code>{{ environment_view.signature.hex_digest }}</code></span>
+    {{ copy_button("report-signature", "link-btn", "float:none") }}
+  </div>
+
+</section>
+
+<!-- ============== TIMELINE ============== -->
+<section id="tab-timeline" class="tab-panel">
+
+  <div class="env-block">
+    <div class="timeline-header">
+      <h3>{{ strings.timeline_title }}</h3>
+      <div class="grouping-toggle" id="timeline-viz-toggle">
+        <button type="button" class="grouping-btn active" data-viz="gantt">{{ strings.timeline_gantt_label }}</button>
+        <button type="button" class="grouping-btn" data-viz="log">{{ strings.timeline_log_label }}</button>
+      </div>
+    </div>
+
+    {% if timeline_view.gantt.rows %}
+    <div class="gantt-view" data-viz-view="gantt">
+      <div class="gantt-ruler">
+        <span class="gantt-ruler-spacer"></span>
+        <div class="gantt-ruler-track">
+          {% for tick in timeline_view.gantt.ticks %}
+          <span class="gantt-ruler-tick" style="left: {{ tick.position }}%">{{ tick.label }}</span>
+          {% endfor %}
+        </div>
+        <span class="gantt-ruler-spacer"></span>
+      </div>
+      {% for row in timeline_view.gantt.rows %}
+      <div class="gantt-row">
+        <button type="button" class="gantt-row-label" data-timeline-toggle="{{ row.scenario_id }}">{{ row.scenario_id }}</button>
+        <div class="gantt-track">
+          {% for marker in row.markers %}
+          <span class="gantt-marker gantt-marker-{{ marker.type }}{% if marker.type == 'validation' %} status-{{ marker.outcome }}-marker{% endif %}" style="left: {{ marker.position }}%" title="{% if marker.type == 'request' %}{{ strings.timeline_event_request }}{% elif marker.type == 'response' %}{{ strings.timeline_event_response }}{% else %}{{ strings.timeline_event_round }} {{ marker.round_index + 1 }} ({{ marker.outcome }}){% endif %} &mdash; {{ marker.timestamp_label }}"></span>
+          {% endfor %}
+        </div>
+        {{ status_icon(row.status_pt, "gantt-badge") }}
+      </div>
+      <div class="timeline-local-log hidden" id="local-log-{{ row.scenario_id }}">
+        {% for event in timeline_view.events if event.scenario_id == row.scenario_id %}
+        <div class="log-entry">
+          <span class="log-time">{{ event.timestamp_label }}</span>
+          <span>
+            {%- if event.kind == "request" -%}{{ strings.timeline_event_request }}
+            {%- elif event.kind == "response" -%}{{ strings.timeline_event_response }}
+            {%- else -%}{{ strings.timeline_event_round }} {{ event.round_index + 1 }}
+            {%- endif -%}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="log-view hidden" data-viz-view="log">
+      {% for event in timeline_view.events %}
+      <div class="log-entry">
+        <span class="log-time">{{ event.timestamp_label }}</span>
+        <span>
+          {%- if event.kind == "request" -%}{{ strings.timeline_event_request }} &mdash; {{ event.scenario_id }}
+          {%- elif event.kind == "response" -%}{{ strings.timeline_event_response }} &mdash; {{ event.scenario_id }}
+          {%- elif event.kind == "validation_round" -%}{{ strings.timeline_event_round }} {{ event.round_index + 1 }} &mdash; {{ event.scenario_id }}
+          {%- else -%}{{ strings.timeline_event_service }} &mdash; {{ event.service_name }}
+          {%- endif -%}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">{{ strings.empty_state_no_scenarios }}</div>
+    {% endif %}
+  </div>
+
+  <div class="latency-block">
+    <h3>{{ strings.timeline_latency_title }}</h3>
+    {% if timeline_view.latency.stats %}
+    <div class="latency-stats">
+      <span>{{ strings.timeline_latency_avg }}: <b>{{ "%.0f"|format(timeline_view.latency.stats.average_ms) }}ms</b></span>
+      <span>{{ strings.timeline_latency_p95 }}: <b>{{ "%.0f"|format(timeline_view.latency.stats.p95_ms) }}ms</b></span>
+      <span>{{ strings.timeline_latency_max }}: <b>{{ "%.0f"|format(timeline_view.latency.stats.max_ms) }}ms</b></span>
+    </div>
+    <div class="latency-chart-wrap">
+      <div class="latency-chart-main">
+        <div class="latency-plot-row">
+          <div class="latency-y-axis">
+            {% for tick in timeline_view.latency.y_ticks %}
+            <span class="latency-axis-label" style="top: {{ tick.position }}%">{{ tick.label }}</span>
+            {% endfor %}
+          </div>
+          <div class="latency-plot">
+            <svg class="latency-chart" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {% for tick in timeline_view.latency.y_ticks %}
+              <line class="latency-gridline" x1="0" x2="100" y1="{{ tick.position }}" y2="{{ tick.position }}" vector-effect="non-scaling-stroke"></line>
+              {% endfor %}
+              {% for point in timeline_view.latency.points %}
+              <circle class="latency-point" cx="{{ (0.8 + point.x_percent / 100 * 98.4)|round(4) }}" cy="{{ (0.8 + point.y_percent / 100 * 98.4)|round(4) }}" r="1.5" style="fill: var({{ point.color_var }});"><title>{{ point.path }} — {{ '%.0f'|format(point.latency_ms) }}ms</title></circle>
+              {% endfor %}
+            </svg>
+          </div>
+        </div>
+        <div class="latency-x-axis-row">
+          <span class="latency-x-axis-spacer"></span>
+          <div class="latency-x-axis-track">
+            {% for tick in timeline_view.latency.x_ticks %}
+            <span class="latency-axis-label" style="left: {{ tick.position }}%">{{ tick.label }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="latency-legend">
+        {% for entry in timeline_view.latency.legend %}
+        <span class="legend-item"><span class="legend-item-dot" style="background: var({{ entry.color_var }})"></span>{{ entry.path }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">{{ strings.empty_state_no_latency }}</div>
+    {% endif %}
+  </div>
+
+</section>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var THEME_KEY = "thomas-report-theme";
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = window.localStorage.getItem(THEME_KEY); } catch (e) { stored = null; }
+  if (stored) { root.setAttribute("data-theme", stored); }
+
+  document.getElementById("dark-mode-toggle").addEventListener("click", function () {
+    var current = root.getAttribute("data-theme");
+    var next = current === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { window.localStorage.setItem(THEME_KEY, next); } catch (e) { /* no-op */ }
+    syncCompanyLogoSize();
+  });
+
+  /* Client logo: square icon matching the height of the adjacent company text block */
+  function syncCompanyLogoSize() {
+    var logoEl = document.querySelector(".company-logo");
+    var textEl = document.querySelector(".banner-text");
+    if (!logoEl || !textEl) { return; }
+    var h = textEl.offsetHeight;
+    if (h > 0) {
+      logoEl.style.width = h + "px";
+      logoEl.style.height = h + "px";
+    }
+  }
+  syncCompanyLogoSize();
+  window.addEventListener("resize", syncCompanyLogoSize);
+
+  /* Tab navigation: fully replaces visible content, no stacking (FR-001) */
+  document.querySelectorAll(".tab-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var target = btn.getAttribute("data-tab");
+      document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.toggle("active", b === btn); });
+      document.querySelectorAll(".tab-panel").forEach(function (panel) {
+        panel.classList.toggle("active", panel.id === "tab-" + target);
+      });
+    });
+  });
+
+  /* Grouping toggle (Pasta/Funcionalidade) */
+  var groupingToggle = document.getElementById("grouping-toggle");
+  if (groupingToggle) {
+    groupingToggle.querySelectorAll(".grouping-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var mode = btn.getAttribute("data-grouping");
+        groupingToggle.querySelectorAll(".grouping-btn").forEach(function (b) { b.classList.toggle("active", b === btn); });
+        document.querySelectorAll(".mini-card-scroll").forEach(function (el) {
+          el.classList.toggle("hidden", el.getAttribute("data-grouping-view") !== mode);
+        });
+        document.querySelectorAll(".scenario-list-view").forEach(function (el) {
+          el.classList.toggle("hidden", el.getAttribute("data-grouping-view") !== mode);
+        });
+        clearGroupFilter();
+      });
+    });
+  }
+
+  /* Scenario detail expand/collapse — only one open at a time */
+  var openDetailId = null;
+  document.querySelectorAll(".scenario-row-summary").forEach(function (summary) {
+    summary.addEventListener("click", function () {
+      var uid = summary.getAttribute("data-scenario-toggle");
+      var panel = document.getElementById("detail-" + uid);
+      if (!panel) { return; }
+      var isOpen = !panel.hasAttribute("hidden");
+      if (openDetailId && openDetailId !== uid) {
+        var previous = document.getElementById("detail-" + openDetailId);
+        if (previous) { previous.setAttribute("hidden", ""); }
+      }
+      if (isOpen) {
+        panel.setAttribute("hidden", "");
+        openDetailId = null;
+        summary.setAttribute("aria-expanded", "false");
+      } else {
+        panel.removeAttribute("hidden");
+        openDetailId = uid;
+        summary.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+
+  /* Filters: status chips (OR) + search (AND across types) + active mini-card group filter (AND) */
+  var activeStatuses = new Set();
+  var activeSearch = "";
+  var activeGroupFilter = null; /* {grouping, name} */
+
+  function currentGroupingMode() {
+    var activeBtn = groupingToggle ? groupingToggle.querySelector(".grouping-btn.active") : null;
+    return activeBtn ? activeBtn.getAttribute("data-grouping") : "feature";
+  }
+
+  function applyFilters() {
+    var mode = currentGroupingMode();
+    document.querySelectorAll('.scenario-list-view[data-grouping-view="' + mode + '"] .scenario-row').forEach(function (row) {
+      var status = row.getAttribute("data-status");
+      var name = row.getAttribute("data-name") || "";
+      var statusMatch = activeStatuses.size === 0 || activeStatuses.has(status);
+      var searchMatch = !activeSearch || name.indexOf(activeSearch) !== -1;
+      var groupMatch = true;
+      if (activeGroupFilter && activeGroupFilter.grouping === mode) {
+        var groupEl = row.closest(".scenario-group");
+        groupMatch = groupEl && groupEl.getAttribute("data-group-name") === activeGroupFilter.name;
+      }
+      row.classList.toggle("filtered-out", !(statusMatch && searchMatch && groupMatch));
+    });
+    document.querySelectorAll('.scenario-list-view[data-grouping-view="' + mode + '"] .scenario-group').forEach(function (group) {
+      var hasVisible = group.querySelector(".scenario-row:not(.filtered-out)");
+      group.style.display = hasVisible ? "" : "none";
+    });
+  }
+
+  document.querySelectorAll(".status-chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      var status = chip.getAttribute("data-status");
+      if (activeStatuses.has(status)) {
+        activeStatuses.delete(status);
+        chip.classList.remove("on");
+      } else {
+        activeStatuses.add(status);
+        chip.classList.add("on");
+      }
+      applyFilters();
+    });
+  });
+
+  var searchInput = document.getElementById("scenario-search");
+  if (searchInput) {
+    searchInput.addEventListener("input", function () {
+      activeSearch = searchInput.value.trim().toLowerCase();
+      applyFilters();
+    });
+  }
+
+  var indicator = document.getElementById("active-filter-indicator");
+  var indicatorLabel = document.getElementById("active-filter-label");
+
+  function clearGroupFilter() {
+    activeGroupFilter = null;
+    if (indicator) { indicator.classList.add("hidden"); }
+    document.querySelectorAll(".mini-card").forEach(function (card) { card.classList.remove("active"); });
+    applyFilters();
+  }
+
+  var clearBtn = document.getElementById("clear-group-filter");
+  if (clearBtn) { clearBtn.addEventListener("click", clearGroupFilter); }
+
+  document.querySelectorAll(".mini-card").forEach(function (card) {
+    card.addEventListener("click", function () {
+      var grouping = card.getAttribute("data-grouping");
+      var name = card.getAttribute("data-group-name");
+      activeGroupFilter = { grouping: grouping, name: name };
+      document.querySelectorAll(".mini-card").forEach(function (c) { c.classList.toggle("active", c === card); });
+      if (indicator && indicatorLabel) {
+        indicatorLabel.textContent = name || "/";
+        indicator.classList.remove("hidden");
+      }
+      applyFilters();
+      var target = document.querySelector(
+        '.scenario-list-view[data-grouping-view="' + grouping + '"] .scenario-group[data-group-name="' + CSS.escape(name) + '"]'
+      );
+      if (target) { target.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    });
+  });
+
+  /* Connectors / prepared variables: reveal masked values */
+  document.querySelectorAll(".reveal-btn").forEach(function (btn) {
+    var eyeIcon = btn.querySelector(".icon-eye");
+    var eyeOffIcon = btn.querySelector(".icon-eye-off");
+    btn.addEventListener("click", function () {
+      var maskSpan = btn.previousElementSibling;
+      if (!maskSpan) { return; }
+      var revealed = maskSpan.getAttribute("data-revealed") === "true";
+      if (revealed) {
+        maskSpan.textContent = maskSpan.getAttribute("data-masked-value");
+        maskSpan.classList.remove("no-value");
+        maskSpan.setAttribute("data-revealed", "false");
+        btn.setAttribute("aria-label", btn.getAttribute("data-label-show"));
+        btn.title = btn.getAttribute("data-label-show");
+        eyeIcon.style.display = "block";
+        eyeOffIcon.style.display = "none";
+      } else {
+        var realValue = maskSpan.getAttribute("data-real-value");
+        maskSpan.textContent = realValue || maskSpan.getAttribute("data-empty-placeholder");
+        maskSpan.classList.toggle("no-value", !realValue);
+        maskSpan.setAttribute("data-revealed", "true");
+        btn.setAttribute("aria-label", btn.getAttribute("data-label-hide"));
+        btn.title = btn.getAttribute("data-label-hide");
+        eyeIcon.style.display = "none";
+        eyeOffIcon.style.display = "block";
+      }
+    });
+  });
+
+  /* Copy-to-clipboard for signature and JSON blocks */
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    var resetTimer = null;
+    btn.addEventListener("click", function () {
+      var targetId = btn.getAttribute("data-copy-target");
+      var el = document.getElementById(targetId);
+      if (!el) { return; }
+      var text = el.textContent;
+      try { window.navigator.clipboard.writeText(text); } catch (e) { /* no-op */ }
+      btn.classList.add("copied");
+      if (resetTimer) { clearTimeout(resetTimer); }
+      resetTimer = setTimeout(function () {
+        btn.classList.remove("copied");
+        resetTimer = null;
+      }, 2000);
+    });
+  });
+
+  /* Timeline: Gantt/Log toggle */
+  var timelineToggle = document.getElementById("timeline-viz-toggle");
+  if (timelineToggle) {
+    timelineToggle.querySelectorAll(".grouping-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var viz = btn.getAttribute("data-viz");
+        timelineToggle.querySelectorAll(".grouping-btn").forEach(function (b) { b.classList.toggle("active", b === btn); });
+        document.querySelectorAll(".gantt-view, .log-view").forEach(function (el) {
+          el.classList.toggle("hidden", el.getAttribute("data-viz-view") !== viz);
+        });
+      });
+    });
+  }
+
+  /* Timeline: expand a scenario's local event log */
+  document.querySelectorAll("[data-timeline-toggle]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var log = document.getElementById("local-log-" + btn.getAttribute("data-timeline-toggle"));
+      if (log) { log.classList.toggle("hidden"); }
+    });
+  });
+})();
+</script>
+</body>
+</html>

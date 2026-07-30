@@ -13,6 +13,7 @@
     "system_name": { "type": "string", "minLength": 1 },
     "timezone": { "type": "string", "minLength": 1 },
     "report_language": { "enum": ["en", "pt"], "default": "en" },
+    "company_logo_path": { "type": "string", "minLength": 1 },
     "api": {
       "type": "object",
       "required": ["base_url"],
@@ -55,7 +56,7 @@
         "type": "object",
         "required": ["type"],
         "properties": {
-          "type": { "enum": ["oracle", "db2", "mongo", "kafka"] }
+          "type": { "enum": ["oracle", "db2", "mongo", "kafka", "fake"] }
         }
       }
     }

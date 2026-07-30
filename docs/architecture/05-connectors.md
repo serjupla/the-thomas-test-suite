@@ -78,10 +78,10 @@ detect this and guide the user to exactly which extra to install (e.g.
   `:correlation_id` with the resolved value; expects exactly one result
   row; extracts `validation["field"]` (column name, case-insensitive)
   from that row.
-- Query with zero rows → `technical_error = "no record found"`.
+- Query with zero rows → `technical_error = "no record found for the
+  given query"`.
 - Query with more than one row → `technical_error = "query returned
-  multiple records; the query must be specific enough to return a single
-  record"`.
+  multiple records; refine the query to return a single record"`.
 
 ## DB2 Connector (via JDBC)
 

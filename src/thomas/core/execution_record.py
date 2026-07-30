@@ -69,6 +69,7 @@ def build_execution_record(
     results: list[ScenarioResult],
     company_name: str | None = None,
     department_name: str | None = None,
+    prepared_variables: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     tz = ZoneInfo(timezone_name)
     start_time = start_time.astimezone(tz)
@@ -86,6 +87,8 @@ def build_execution_record(
         record["company_name"] = company_name
     if department_name is not None:
         record["department_name"] = department_name
+    if prepared_variables:
+        record["prepared_variables"] = prepared_variables
     return record
 
 

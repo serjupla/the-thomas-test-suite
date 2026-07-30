@@ -5,16 +5,27 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from rich.console import Console
+from rich.markup import escape
 from rich.progress import Progress
 from rich.table import Table
 
 from thomas import __version__
-from thomas.core.loading import ThomasFileError, load_environment, load_scenarios, load_variables
+from thomas.connectors import ConnectorTechnicalError
+from thomas.core.loading import (
+    ThomasFileError,
+    load_and_validate,
+    load_environment,
+    load_scenarios,
+    load_variables,
+)
 from thomas.core.variables import find_undefined_references
 from thomas.request.dispatch import run_request
+from thomas.validate.orchestrator import run_validate
+from thomas.validate.preflight import check_missing_connectors
 
 console = Console()
 
@@ -96,11 +107,28 @@ def _build_request_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--verbose", action="store_true")
 
 
+def _build_validate_parser(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser("validate", help="Run declared validations against an execution record.")
+    parser.add_argument("--execution", required=True, type=Path)
+    parser.add_argument("--environment", required=True, type=Path)
+    parser.add_argument("--log-file", type=Path, default=Path("thomas.log"))
+    parser.add_argument("--verbose", action="store_true")
+
+
+def _build_report_parser(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser("report", help="Generate a self-contained HTML report from an execution record.")
+    parser.add_argument("--execution", required=True, type=Path)
+    parser.add_argument("--environment", required=True, type=Path)
+    parser.add_argument("--output", type=Path, default=Path("reports"))
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="thomas")
     subparsers = parser.add_subparsers(dest="command", required=True)
     _build_init_parser(subparsers)
     _build_request_parser(subparsers)
+    _build_validate_parser(subparsers)
+    _build_report_parser(subparsers)
     return parser
 
 
@@ -189,6 +217,128 @@ def run_request_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _print_validate_summary(new_rounds: list[dict]) -> None:
+    table = Table(title="thomas validate summary")
+    table.add_column("Validations passed")
+    table.add_column("Validations failed")
+    table.add_column("Technical errors")
+
+    passed = 0
+    failed = 0
+    technical_errors = 0
+    for round_entry in new_rounds:
+        for result in round_entry["results"]:
+            if result["technical_error"] is not None:
+                technical_errors += 1
+            elif result["passed"]:
+                passed += 1
+            else:
+                failed += 1
+
+    table.add_row(str(passed), str(failed), str(technical_errors))
+    console.print(table)
+
+
+def _validate_scenario_files_exist(execution_record: dict) -> tuple[bool, str | None]:
+    """Check if all scenarios referenced in the execution record exist.
+
+    Returns (success: bool, error_message: str | None).
+    """
+    from thomas.core.loading import _find_project_root
+
+    project_root = _find_project_root()
+    for scenario_result in execution_record["results"]:
+        scenario_file_str = scenario_result["scenario_file"]
+        scenario_path = project_root / scenario_file_str
+        if not scenario_path.exists():
+            error_msg = f"Scenario file not found: [bold]{scenario_file_str}[/bold]"
+            return False, error_msg
+    return True, None
+
+
+def run_validate_command(args: argparse.Namespace) -> int:
+    import json
+
+    try:
+        execution_record = load_and_validate(args.execution, "execution_v1.json")
+    except ThomasFileError as exc:
+        console.print(f"[red]Invalid execution record file:[/red] {exc}")
+        return 1
+
+    try:
+        environment = load_environment(args.environment)
+    except ThomasFileError as exc:
+        console.print(f"[red]Invalid environment file:[/red] {exc}")
+        return 1
+
+    scenarios_ok, scenario_error = _validate_scenario_files_exist(execution_record)
+    if not scenarios_ok:
+        console.print(f"[red]{scenario_error}[/red]")
+        return 1
+
+    missing_connectors = check_missing_connectors(execution_record, environment)
+    if missing_connectors:
+        details = "; ".join(f"{connector}: required by scenario '{scenario_id}'" for connector, scenario_id in missing_connectors)
+        console.print(f"[red]Missing connector(s):[/red] {details}")
+        return 1
+
+    secrets = _collect_credential_values(environment)
+    _configure_logging(args.log_file, secrets)
+
+    prior_round_counts = [len(result["validation_rounds"]) for result in execution_record["results"]]
+
+    try:
+        updated_record = run_validate(execution_record, environment)
+    except ConnectorTechnicalError as exc:
+        console.print(f"[red]{escape(str(exc))}[/red]")
+        return 1
+
+    args.execution.write_text(json.dumps(updated_record, indent=2))
+
+    new_rounds = [
+        result["validation_rounds"][-1]
+        for result, prior_count in zip(updated_record["results"], prior_round_counts)
+        if len(result["validation_rounds"]) > prior_count
+    ]
+    _print_validate_summary(new_rounds)
+    console.print(f"Execution record updated at [bold]{args.execution}[/bold]")
+    return 0
+
+
+def run_report_command(args: argparse.Namespace) -> int:
+    from thomas.report.generator import generate_report_html, write_report
+
+    try:
+        execution_record = load_and_validate(args.execution, "execution_v1.json")
+    except ThomasFileError as exc:
+        console.print(f"[red]Invalid execution record file:[/red] {exc}")
+        return 1
+
+    try:
+        environment = load_environment(args.environment)
+    except ThomasFileError as exc:
+        console.print(f"[red]Invalid environment file:[/red] {exc}")
+        return 1
+
+    if environment.get("company_logo_path"):
+        logo_path = Path(environment["company_logo_path"])
+        if not logo_path.is_absolute():
+            environment = dict(environment)
+            environment["company_logo_path"] = str(args.environment.parent / logo_path)
+
+    execution_file_bytes = args.execution.read_bytes()
+
+    try:
+        html = generate_report_html(execution_record, environment, execution_file_bytes)
+    except ThomasFileError as exc:
+        console.print(f"[red]Invalid company_logo_path:[/red] {exc}")
+        return 1
+
+    output_path = write_report(html, args.execution, args.output, datetime.now().astimezone())
+    console.print(f"Report written to [bold]{output_path}[/bold]")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -197,6 +347,10 @@ def main(argv: list[str] | None = None) -> int:
         return run_init_command(args)
     elif args.command == "request":
         return run_request_command(args)
+    elif args.command == "validate":
+        return run_validate_command(args)
+    elif args.command == "report":
+        return run_report_command(args)
 
     parser.error(f"unknown command: {args.command}")
     return 2

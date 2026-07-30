@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": "1.0",
   "feature": "transfers",
   "description": "Test rejection of transfer with invalid account",
   "request": {

@@ -38,6 +38,13 @@ class TestInitEdgeCases:
             with pytest.raises(PathTooLongError):
                 validate_destination_path(long_path)
 
+    def test_reject_null_byte_in_path(self):
+        """Test that path with null byte is rejected."""
+        bad_path = Path("/tmp/test\x00path")
+
+        with pytest.raises(PathTooLongError):
+            validate_destination_path(bad_path)
+
     def test_scaffold_success_with_valid_path(self):
         """Test that valid path scaffolds successfully."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -62,7 +69,7 @@ class TestInitEdgeCases:
                 # Try to validate (write permission check might fail)
                 validate_destination_path(readonly_dir)
             except Exception:
-                # Expected to raise on permission denied
+                # Expected to raise some error
                 pass
             finally:
                 # Restore permissions for cleanup

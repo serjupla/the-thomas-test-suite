@@ -82,7 +82,16 @@ def discover_scenario_files(path: Path) -> list[Path]:
     return sorted(p for p in path.rglob("*.json") if p.is_file())
 
 
-def load_scenarios(path: Path) -> list[LoadedScenario]:
+def _find_project_root() -> Path:
+    """Find project root by looking for .git or pyproject.toml, starting from cwd."""
+    current = Path.cwd()
+    for parent in [current] + list(current.parents):
+        if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
+            return parent
+    return current
+
+
+def load_scenarios(path: Path, project_root: Path | None = None) -> list[LoadedScenario]:
     """Discover and validate every scenario under `path`, failing all-at-once.
 
     If `path` is a folder, every discovered .json file is treated as a scenario
@@ -90,9 +99,14 @@ def load_scenarios(path: Path) -> list[LoadedScenario]:
     or more are invalid, a single ThomasFileError is raised listing every
     offending file (FR-001 clarification). If no scenario file is discoverable,
     a ThomasFileError is raised as well (FR-003 clarification).
+
+    Scenario file paths are recorded relative to project_root if provided and the
+    file is within the project; otherwise recorded relative to the discovery root.
     """
     root = path if path.is_dir() else path.parent
     files = discover_scenario_files(path)
+    if project_root is None:
+        project_root = _find_project_root()
 
     if not files:
         raise ThomasFileError([(str(path), "no scenarios found")])
@@ -107,10 +121,15 @@ def load_scenarios(path: Path) -> list[LoadedScenario]:
             continue
 
         relative = file_path.relative_to(root) if path.is_dir() else Path(file_path.name)
+        resolved_path = file_path.resolve()
+        try:
+            scenario_file = str(resolved_path.relative_to(project_root))
+        except ValueError:
+            scenario_file = str(resolved_path)
         loaded.append(
             LoadedScenario(
                 document=document,
-                scenario_file=str(relative),
+                scenario_file=scenario_file,
                 folder=str(relative.parent) if str(relative.parent) != "." else "",
             )
         )

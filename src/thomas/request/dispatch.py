@@ -47,7 +47,7 @@ def poll_services_info(services_info: list[dict[str, Any]], variables: dict[str,
         service_headers = service.get("headers")
         try:
             resolved_service_headers = _resolve_headers(service_headers, variables or {})
-        except ValueError as exc:
+        except Exception as exc:
             logger.debug("Header variable resolution failed for service %s: %s", service["name"], exc)
             entry["error"] = f"Header resolution failed: {exc!s}"
             entry["data"] = None
@@ -168,7 +168,7 @@ def dispatch_scenario(
     endpoint_headers = endpoint.get("headers")
     try:
         resolved_scenario_headers = _resolve_headers(endpoint_headers, variables)
-    except ValueError as exc:
+    except Exception as exc:
         logger.debug("Header variable resolution failed in scenario %s: %s", scenario.scenario_file, exc)
         return ScenarioResult(
             scenario_file=scenario.scenario_file,
@@ -325,6 +325,7 @@ def run_request(
         results=results,
         company_name=environment.get("company_name"),
         department_name=environment.get("department_name"),
+        prepared_variables=variables,
     )
 
     return write_execution_record(record, output_dir)

@@ -10,6 +10,9 @@
     "execution_id": { "type": "string", "minLength": 1 },
     "thomas_version": { "type": "string", "minLength": 1 },
     "environment": { "type": "string", "minLength": 1 },
+    "company_name": { "type": "string", "minLength": 1 },
+    "department_name": { "type": "string", "minLength": 1 },
+    "prepared_variables": { "type": "object" },
     "start_timestamp": { "type": "string", "minLength": 1 },
     "included_scenarios": {
       "type": "array",

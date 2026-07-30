@@ -38,6 +38,9 @@ characteristics no single researched tool brings together:
 
 ```bash
 pip install the-thomas-test-suite
+
+# To run `thomas validate` against Oracle:
+pip install "the-thomas-test-suite[oracle]"
 ```
 
 ## Quickstart
@@ -58,6 +61,17 @@ thomas request \
   --environment examples/config/environments/example.json \
   --folder examples/scenarios \
   --variables examples/config/variables.example.json
+
+# Validate side effects in a connected data source (e.g. Oracle)
+thomas validate \
+  --execution executions/<execution-file>.json \
+  --environment examples/config/environments/example.json
+
+# Generate a self-contained, bilingual HTML report
+thomas report \
+  --execution executions/<execution-file>.json \
+  --environment examples/config/environments/example.json \
+  --output reports
 ```
 
 `thomas init` creates a ready-to-use project structure with examples, templates,
@@ -89,21 +103,23 @@ You should see a console summary table and an execution record written
 under `executions/`. The bundled scenarios demonstrate variable
 substitution (`{{variable_name}}`), correlation ID extraction from both
 the API response and the request payload, and a scenario left
-`awaiting_validation` (data-store validation is a later feature — see
-Roadmap below).
+`awaiting_validation` until `thomas validate` runs against a connected
+data source (see the Oracle example scenario under
+`examples/scenarios/generic_example/oracle_settlement_confirmation.json`).
 
 ![thomas request running against the bundled examples](https://raw.githubusercontent.com/serjupla/the-thomas-test-suite/main/assets/screenshot.png)
 
 ## Active development
 
-The Thomas is under active development. `thomas request` (this release)
-is fully functional; upcoming features include database/NoSQL/messaging
-validation (`thomas validate`), real connectors (Oracle, DB2, MongoDB,
-Kafka), and a self-contained bilingual HTML report. See
-[docs/ROADMAP.md](docs/ROADMAP.md) for the full feature roadmap and
-current status (the roadmap is a process document kept in Portuguese by
-the maintainer; feature names and statuses are summarized here in
-English).
+The Thomas is under active development. `thomas request`, `thomas
+validate` (data-source validation), and `thomas report` (self-contained,
+bilingual HTML report) are all fully functional, together with a first
+real connector (Oracle, via the `thomas[oracle]` extra). Upcoming work
+adds further connectors (DB2, MongoDB, Kafka) and multi-environment
+refinement. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full feature
+roadmap and current status (the roadmap is a process document kept in
+Portuguese by the maintainer; feature names and statuses are summarized
+here in English).
 
 ## Architecture
 
