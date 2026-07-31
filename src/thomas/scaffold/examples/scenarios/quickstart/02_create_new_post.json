@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "feature": "public_api_write",
+  "scenario_id": "create_new_post",
+  "description": "Demonstrates sending data to a public API: creates a new resource and checks that the API accepted and echoed it back.",
+  "endpoint": {
+    "method": "POST",
+    "path": "/posts"
+  },
+  "payload": {
+    "title": "{{post_title}}",
+    "body": "{{post_body}}",
+    "userId": "{{user_id}}"
+  },
+  "api_checks": [
+    { "id": "status_created", "field": "status_code", "operator": "equals", "expected_value": 201 },
+    { "id": "title_echoed", "field": "$.title", "operator": "equals", "expected_value": "{{post_title}}" }
+  ]
+}

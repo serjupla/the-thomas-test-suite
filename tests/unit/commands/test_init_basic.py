@@ -24,7 +24,7 @@ class TestInitBasicScaffolding:
             assert (dest / "examples/config").exists()
             assert (dest / "examples/config/environments").exists()
             assert (dest / "examples/scenarios").exists()
-            assert (dest / "examples/scenarios/generic_example").exists()
+            assert (dest / "examples/scenarios/quickstart").exists()
 
     def test_scaffold_creates_required_files(self):
         """Test that scaffolding creates required template files."""
@@ -47,13 +47,13 @@ class TestInitBasicScaffolding:
             # Check environment config
             env_file = dest / "config/environments/example.json.dist"
             env_data = json.loads(env_file.read_text())
-            assert env_data["schema_version"] == "1.0"
-            assert "api_base_url" in env_data
+            assert env_data["schema_version"] == 1
+            assert "base_url" in env_data["api"]
 
             # Check variables
             vars_file = dest / "config/variables.example.json"
             vars_data = json.loads(vars_file.read_text())
-            assert vars_data["schema_version"] == "1.0"
+            assert vars_data["schema_version"] == 1
             assert "variables" in vars_data
 
     def test_scaffold_result_created_status(self):

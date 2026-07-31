@@ -53,13 +53,6 @@ thomas-test-suite/
 │               └── logo.svg           # The Thomas logo (provided by the maintainer)
 ├── tests/
 │   └── ...                            # mirrors the src/thomas structure
-├── examples/
-│   ├── scenarios/
-│   │   └── generic_example/           # fictional demo scenarios
-│   └── config/
-│       ├── environments/
-│       │   └── example.json.dist
-│       └── variables.example.json
 ├── pyproject.toml
 ├── README.md
 ├── LICENSE

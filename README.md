@@ -45,67 +45,46 @@ pip install "the-thomas-test-suite[oracle]"
 
 ## Quickstart
 
-### Option 1: Bootstrap a new project (recommended for new users)
-
 ```bash
 pip install the-thomas-test-suite
 
-# Create a new Thomas project in current directory
+# Create a new Thomas project in the current directory
 thomas init
+cd <project-directory>
 
-# Start the bundled mock server
-cd . && python examples/mock_server.py &
-
-# In another terminal: run the example scenarios
+# Run the bundled examples — no local server, no extra terminal, no
+# credentials. They call a real public API (jsonplaceholder.typicode.com)
+# over your normal internet connection.
 thomas request \
   --environment examples/config/environments/example.json \
   --folder examples/scenarios \
   --variables examples/config/variables.example.json
-
-# Validate side effects in a connected data source (e.g. Oracle)
-thomas validate \
-  --execution executions/<execution-file>.json \
-  --environment examples/config/environments/example.json
-
-# Generate a self-contained, bilingual HTML report
-thomas report \
-  --execution executions/<execution-file>.json \
-  --environment examples/config/environments/example.json \
-  --output reports
 ```
 
-`thomas init` creates a ready-to-use project structure with examples, templates,
-and a mock server for learning. No git clone required.
-
-### Option 2: Clone repository and run examples
-
-The example below runs entirely against a local mock HTTP service — no
-external infrastructure or credentials required.
+`thomas request` prints the path of the execution record it just wrote.
+Use that same path to validate and generate the report:
 
 ```bash
-git clone https://github.com/serjupla/the-thomas-test-suite.git
-cd the-thomas-test-suite
-pip install -e .
+thomas validate --execution executions/<execution-record-from-above>.json \
+                 --environment examples/config/environments/example.json
 
-# In one terminal: start the fictional mock service
-python examples/mock_server.py
-
-# In another terminal: dispatch the example scenarios
-thomas request \
-  --environment examples/config/environments/example.json \
-  --folder examples/scenarios \
-  --variables examples/config/variables.example.json
+thomas report --execution executions/<execution-record-from-above>.json \
+               --environment examples/config/environments/example.json
 ```
+
+`thomas init` creates a ready-to-use project structure with your own
+`scenarios/` folder plus `examples/` — three ready-to-run scenarios covering
+reading data from an API, writing data to an API, and a two-step flow where
+the result is confirmed in a separate validation step. No git clone
+required.
 
 ## Example Output
 
 You should see a console summary table and an execution record written
 under `executions/`. The bundled scenarios demonstrate variable
-substitution (`{{variable_name}}`), correlation ID extraction from both
-the API response and the request payload, and a scenario left
-`awaiting_validation` until `thomas validate` runs against a connected
-data source (see the Oracle example scenario under
-`examples/scenarios/generic_example/oracle_settlement_confirmation.json`).
+substitution (`{{variable_name}}`), correlation ID extraction from the API
+response, and a scenario momentarily left `awaiting_validation` until
+`thomas validate` confirms it.
 
 ![thomas request running against the bundled examples](https://raw.githubusercontent.com/serjupla/the-thomas-test-suite/main/assets/screenshot.png)
 

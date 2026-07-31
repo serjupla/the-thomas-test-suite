@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "feature": "public_api_delayed_validation",
+  "scenario_id": "create_and_confirm_order",
+  "description": "Demonstrates a two-step flow: the API call creates a resource, then a separate validation step confirms it — illustrating request/validate as independent phases, with an immediate and deterministic confirmation (no wait or retry).",
+  "endpoint": {
+    "method": "POST",
+    "path": "/posts"
+  },
+  "payload": {
+    "title": "order-{{post_title}}",
+    "body": "{{post_body}}",
+    "userId": "{{user_id}}"
+  },
+  "api_checks": [
+    { "id": "status_created", "field": "status_code", "operator": "equals", "expected_value": 201 }
+  ],
+  "correlation": {
+    "source": "api_response",
+    "field": "$.id"
+  },
+  "validations": [
+    { "id": "order_confirmed", "connector": "fake_ledger", "operator": "equals", "expected_value": "confirmed" }
+  ]
+}

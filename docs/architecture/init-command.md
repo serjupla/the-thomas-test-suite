@@ -1,12 +1,12 @@
 # Architecture: Thomas Init Command
 
-**Status**: Implemented (Feature 005)  
-**Version**: 1.0  
-**Last Updated**: 2026-07-27
+**Status**: Implemented (Feature 005, examples reworked in Feature 011)  
+**Version**: 1.1  
+**Last Updated**: 2026-07-31
 
 ## Overview
 
-The `thomas init` command bootstraps a new Thomas test project without requiring git clone. It creates a complete, idempotent directory structure with user-owned test scenarios, template configurations, executable examples, and documentation.
+The `thomas init` command bootstraps a new Thomas test project without requiring git clone. It creates a complete, idempotent directory structure with user-owned test scenarios, template configurations, ready-to-run examples against a real public API, and documentation.
 
 ## Command Interface
 
@@ -32,16 +32,15 @@ thomas init [DESTINATION] [--force]
 │   └── environments/
 │       └── example.json.dist      (template, no credentials)
 ├── examples/                      (read-only reference)
-│   ├── mock_server.py             (executable demo server)
 │   ├── config/
 │   │   ├── environments/
-│   │   │   └── example.json       (points to localhost:8000)
+│   │   │   └── example.json       (points to a real public API, jsonplaceholder.typicode.com)
 │   │   └── variables.example.json
 │   └── scenarios/
-│       └── generic_example/
-│           ├── billing.json
-│           ├── valid_transfers.json
-│           └── invalid_transfers.json
+│       └── quickstart/
+│           ├── 01_read_existing_post.json
+│           ├── 02_create_new_post.json
+│           └── 03_create_and_confirm_order.json
 ├── .gitignore                     (template, skip/overwrite based on --force)
 └── README                         (quickstart instructions)
 ```
@@ -139,30 +138,21 @@ Output structure:
 - Command dispatch in `main()`: `if args.command == "init": run_init_command(args)`
 - Exception handling: Converts `ScaffoldError` exceptions to appropriate exit codes
 
-## Mock Server Reference
-
-The `examples/mock_server.py` is a minimal HTTP server for learning purposes:
-
-**Port**: `localhost:8000` (configurable via `MOCK_SERVER_PORT` env var)
-
-**Endpoints**:
-- `GET /health` → 200 OK
-- `POST /charges` → 200 + charge_id (mocked billing)
-- `POST /transfers` → 200 (valid account) or 400 (invalid account)
-
-**No external dependencies**: Uses only stdlib (`http.server`, `json`) and installed `the-thomas-test-suite`.
-
-**Purpose**: Demonstrates Thomas patterns without external setup (database, API, etc.).
-
 ## Example Scenarios
 
-Located in `examples/scenarios/generic_example/`:
+As of Feature 011, the bundled examples run against a real public API
+(`https://jsonplaceholder.typicode.com`) instead of a local mock server — no
+process to start, no port to open, no second terminal. This removed the
+previous `examples/mock_server.py` and the burden of standing up local
+infrastructure just to try the tool (see `specs/011-init-quickstart-real-apis/`).
 
-1. **billing.json**: Creates a charge, validates response status
-2. **valid_transfers.json**: Transfers with valid account, expects 200
-3. **invalid_transfers.json**: Transfers with invalid account, expects 400
+Located in `examples/scenarios/quickstart/`:
 
-Each scenario uses variable substitution (`{{account_id}}`, `{{transfer_amount}}`) from `examples/config/variables.example.json`.
+1. **01_read_existing_post.json**: `GET /posts/1` — reads data from a public API.
+2. **02_create_new_post.json**: `POST /posts` — sends data to a public API and checks it was accepted and echoed back.
+3. **03_create_and_confirm_order.json**: `POST /posts`, then a separate `validations` step confirming the result via the `fake` connector (`connectors.fake_ledger` in `examples/config/environments/example.json`) — demonstrates the request/validate split with an immediate, deterministic confirmation (no wait or retry). See `docs/architecture/05-connectors.md` for why the `fake` connector is used here.
+
+Each scenario uses variable substitution (`{{post_title}}`, `{{post_body}}`, `{{user_id}}`) from `examples/config/variables.example.json`. Each scenario's `description` field states which capability it demonstrates.
 
 ## Error Handling
 
@@ -207,11 +197,11 @@ thomas init /tmp/test-project
 # Verify structure
 ls -la /tmp/test-project/
 
-# Test mock server
-python /tmp/test-project/examples/mock_server.py &
-MOCK_PID=$!
-curl http://localhost:8000/health
-kill $MOCK_PID
+# Run the bundled examples end-to-end (real network call, no local server)
+cd /tmp/test-project
+thomas request --environment examples/config/environments/example.json \
+                --folder examples/scenarios \
+                --variables examples/config/variables.example.json
 
 # Test idempotency
 thomas init /tmp/test-project  # Should succeed, all skipped

@@ -15,6 +15,7 @@
 | F05 | Múltiplos ambientes (refinamento) | 1 | Não iniciado | — |
 | F009 | Aplicar design system ao relatório HTML (cores, tipografia, espaçamento, responsivo) | 1 | Concluído | 2026-07-29 |
 | F010 | Reestruturar relatório HTML em 3 views (Dashboard, Ambiente de execução, Timeline) | 1 | Concluído | 2026-07-29 |
+| F011 | Quick start de primeira experiência para `thomas init` (exemplos contra API pública real, sem servidor local) | 1 | Concluído | 2026-07-31 |
 | F06 | Conector DB2 | 2 | Não iniciado | — |
 | F07 | Conector Kafka | 2 | Não iniciado | — |
 | F08 | Conector MongoDB | 2 | Não iniciado | — |
@@ -89,15 +90,18 @@ específicos da aplicação em tempo de teste.
 Comando `thomas init [destination] [--force]` que bootstrapa um novo projeto
 Thomas completo, pronto para uso, sem necessidade de git clone. Inclui:
 estrutura de diretórios (scenarios/, config/, examples/), arquivos de
-template (config/environments/example.json.dist, .gitignore, README), servidor
-mock funcional (`examples/mock_server.py` com endpoints /health, /charges,
-/transfers), e cenários de exemplo (billing, valid/invalid transfers).
+template (config/environments/example.json.dist, .gitignore, README), e
+cenários de exemplo prontos para uso.
 Suporta validação de path (symlinks, mount points, Windows limit),
 proteção da pasta scenarios/ contra sobrescrita mesmo com --force,
 idempotência total (executar duas vezes não causa danos), e mensagens de
 erro claras com exit codes apropriados. Reduz barreira de entrada para
 novos usuários — nenhum git, nenhuma instalação editable, apenas
 `pip install the-thomas-test-suite && thomas init`.
+
+> **Nota (F011)**: o ambiente de exemplo original desta feature dependia de
+> um servidor mock local (`examples/mock_server.py`), substituído pela F011
+> por exemplos que chamam uma API pública real.
 
 ### F02 — Motor de validação genérico
 Implementação do motor de operadores (tabela completa descrita em
@@ -148,6 +152,17 @@ intercalada, além de gráfico de dispersão de latência. Inclui uma
 mudança aditiva de schema (`prepared_variables` em `execution_v1.json`,
 sem bump de versão) para que `thomas request` registre as variáveis
 resolvidas usadas na execução.
+
+### F011 — Quick start de primeira experiência para `thomas init`
+Substitui o ambiente de exemplo baseado em servidor mock local
+(`examples/mock_server.py`) por três cenários prontos para uso contra uma
+API pública real (`jsonplaceholder.typicode.com`), sem exigir nenhum
+processo auxiliar, porta local ou segundo terminal: leitura de dados,
+escrita de dados, e um fluxo de validação posterior (confirmação
+imediata e determinística via o conector `fake`, sem retry/polling).
+Remove a pasta `examples/` divergente mantida separadamente no
+repositório e alinha toda a documentação pública ao único conjunto de
+exemplos gerado por `thomas init`.
 
 ### F05 — Múltiplos ambientes (refinamento)
 Formalização do suporte a múltiplos arquivos de ambiente nomeados,

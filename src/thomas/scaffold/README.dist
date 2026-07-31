@@ -4,13 +4,38 @@ This is a Thomas test project initialized with `thomas init`.
 
 ## Quick Start
 
+The `examples/` folder is ready to run as-is, against a real public API
+(`jsonplaceholder.typicode.com`) — no local server, no extra setup, just an
+internet connection.
+
+```bash
+thomas request --environment examples/config/environments/example.json \
+                --folder examples/scenarios \
+                --variables examples/config/variables.example.json
+```
+
+`thomas request` prints the path of the execution record it just wrote
+(under `executions/`). Use that same path for the next two commands:
+
+```bash
+thomas validate --execution executions/<execution-record-from-above>.json \
+                 --environment examples/config/environments/example.json
+
+thomas report --execution executions/<execution-record-from-above>.json \
+               --environment examples/config/environments/example.json
+```
+
+Open the generated `.html` file in `reports/` to see the results.
+
+## Your Own Scenarios
+
 ### 1. Configure Environment
 
 Copy the example environment and add your API base URL:
 
 ```bash
 cp config/environments/example.json.dist config/environments/example.json
-# Edit config/environments/example.json and set your api_base_url
+# Edit config/environments/example.json and set your api base_url
 ```
 
 ### 2. Add Test Scenarios
@@ -20,22 +45,22 @@ Create test scenario files in the `scenarios/` directory:
 ```bash
 cat > scenarios/my_test.json << 'EOF'
 {
-  "schema_version": "1.0",
+  "schema_version": 1,
   "feature": "my_feature",
+  "scenario_id": "my_scenario",
   "description": "Test my feature",
-  "request": {
+  "endpoint": {
     "method": "POST",
-    "path": "/api/endpoint",
-    "body": {}
+    "path": "/api/endpoint"
   },
   "api_checks": [
     {
-      "path": "status_code",
+      "id": "status_ok",
+      "field": "status_code",
       "operator": "equals",
-      "expected": 200
+      "expected_value": 200
     }
-  ],
-  "validations": []
+  ]
 }
 EOF
 ```
@@ -52,25 +77,8 @@ thomas request \
 ### 4. Generate Report
 
 ```bash
-thomas report execution-record.json
-```
-
-## Examples
-
-For learning Thomas patterns, check the `examples/` folder:
-
-```bash
-# Start the mock server
-python examples/mock_server.py &
-
-# Run example scenarios
-thomas request \
-  --environment examples/config/environments/example.json \
-  --folder examples/scenarios \
-  --variables examples/config/variables.example.json
-
-# Generate example report
-thomas report execution-record.json
+thomas report --execution executions/<execution-record>.json \
+               --environment config/environments/example.json
 ```
 
 ## Project Structure
@@ -78,7 +86,7 @@ thomas report execution-record.json
 - `scenarios/` — Your test scenarios (JSON files)
 - `config/environments/` — Environment configurations (credentials, base URLs)
 - `config/variables.example.json` — Shared test variables
-- `examples/` — Reference implementations and mock server for learning
+- `examples/` — Ready-to-run reference scenarios against a real public API
 - `.gitignore` — Recommended ignores (customize as needed)
 
 ## Documentation

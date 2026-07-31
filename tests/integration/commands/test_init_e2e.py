@@ -1,8 +1,12 @@
 """Integration tests for thomas init end-to-end (US1 + US2)."""
 
+import json
 import tempfile
 from pathlib import Path
 
+import responses
+
+from thomas.cli import main
 from thomas.scaffold.scaffolder import scaffold_project
 
 
@@ -87,3 +91,76 @@ class TestInitE2E:
             assert any("scenarios" in str(p) for p in result.protected)
             # User file should exist
             assert user_scenario.exists()
+
+
+def _post_echo_callback(request):
+    """Mimics jsonplaceholder.typicode.com/posts: echoes the payload, adds id=101."""
+    payload = json.loads(request.body)
+    body = {**payload, "id": 101}
+    return (201, {"Content-Type": "application/json"}, json.dumps(body))
+
+
+@responses.activate
+def test_generated_quickstart_examples_run_request_validate_report_without_local_server(tmp_path, monkeypatch):
+    """US1 + US2: thomas init's generated examples run end-to-end against a mocked
+    public API, with no local server involved, and the delayed-validation scenario
+    is confirmed immediately in its first validate round."""
+    monkeypatch.chdir(tmp_path)
+    scaffold_project(destination=tmp_path)
+
+    responses.add(
+        responses.GET,
+        "https://jsonplaceholder.typicode.com/posts/1",
+        json={"id": 1, "userId": 1, "title": "sample", "body": "sample body"},
+        status=200,
+    )
+    responses.add_callback(
+        responses.POST,
+        "https://jsonplaceholder.typicode.com/posts",
+        callback=_post_echo_callback,
+    )
+
+    request_exit_code = main([
+        "request",
+        "--environment", "examples/config/environments/example.json",
+        "--folder", "examples/scenarios",
+        "--variables", "examples/config/variables.example.json",
+    ])
+    assert request_exit_code == 0
+
+    execution_files = list((tmp_path / "executions").glob("*.json"))
+    assert len(execution_files) == 1
+    execution_path = execution_files[0]
+
+    record = json.loads(execution_path.read_text())
+    results_by_id = {r["scenario_id"]: r for r in record["results"]}
+    assert results_by_id["read_existing_post"]["api_result"] == "passed"
+    assert results_by_id["create_new_post"]["api_result"] == "passed"
+    assert results_by_id["create_and_confirm_order"]["api_result"] == "passed"
+    assert results_by_id["create_and_confirm_order"]["final_status"] == "awaiting_validation"
+
+    validate_exit_code = main([
+        "validate",
+        "--execution", str(execution_path),
+        "--environment", "examples/config/environments/example.json",
+    ])
+    assert validate_exit_code == 0
+
+    record = json.loads(execution_path.read_text())
+    results_by_id = {r["scenario_id"]: r for r in record["results"]}
+    validated = results_by_id["create_and_confirm_order"]
+    assert len(validated["validation_rounds"]) == 1
+    assert validated["validation_rounds"][0]["results"][0]["passed"] is True
+    assert validated["final_status"] == "passed"
+
+    report_exit_code = main([
+        "report",
+        "--execution", str(execution_path),
+        "--environment", "examples/config/environments/example.json",
+    ])
+    assert report_exit_code == 0
+
+    html_files = list((tmp_path / "reports").glob("*.html"))
+    assert len(html_files) == 1
+    html = html_files[0].read_text()
+    assert "order_confirmed" in html

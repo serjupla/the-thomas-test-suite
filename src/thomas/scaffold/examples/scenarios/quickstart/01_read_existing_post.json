@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "feature": "public_api_read",
+  "scenario_id": "read_existing_post",
+  "description": "Demonstrates reading data from a public API: fetches an existing resource and checks the response.",
+  "endpoint": {
+    "method": "GET",
+    "path": "/posts/1"
+  },
+  "api_checks": [
+    { "id": "status_ok", "field": "status_code", "operator": "equals", "expected_value": 200 },
+    { "id": "id_matches", "field": "$.id", "operator": "equals", "expected_value": 1 }
+  ]
+}

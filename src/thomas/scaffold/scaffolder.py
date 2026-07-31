@@ -66,19 +66,18 @@ def scaffold_project(destination: Path | None = None, force: bool = False) -> Sc
         (None, "examples/config", False, False),
         (None, "examples/config/environments", False, False),
         (None, "examples/scenarios", False, False),
-        (None, "examples/scenarios/generic_example", False, False),
+        (None, "examples/scenarios/quickstart", False, False),
         # Template files (root config)
         ("config/environments/example.json.dist", "config/environments/example.json.dist", False, False),
         ("config/variables.example.json", "config/variables.example.json", False, False),
         (".gitignore.dist", ".gitignore", False, False),
         ("README.dist", "README", False, False),
         # Example files
-        ("examples/mock_server.py", "examples/mock_server.py", True, False),  # Executable
         ("examples/config/environments/example.json", "examples/config/environments/example.json", False, False),
         ("examples/config/variables.example.json", "examples/config/variables.example.json", False, False),
-        ("examples/scenarios/generic_example/billing.json", "examples/scenarios/generic_example/billing.json", False, False),
-        ("examples/scenarios/generic_example/valid_transfers.json", "examples/scenarios/generic_example/valid_transfers.json", False, False),
-        ("examples/scenarios/generic_example/invalid_transfers.json", "examples/scenarios/generic_example/invalid_transfers.json", False, False),
+        ("examples/scenarios/quickstart/01_read_existing_post.json", "examples/scenarios/quickstart/01_read_existing_post.json", False, False),
+        ("examples/scenarios/quickstart/02_create_new_post.json", "examples/scenarios/quickstart/02_create_new_post.json", False, False),
+        ("examples/scenarios/quickstart/03_create_and_confirm_order.json", "examples/scenarios/quickstart/03_create_and_confirm_order.json", False, False),
     ]
 
     for template_name, dest_rel, executable, protected in templates:
