@@ -12,6 +12,7 @@
     "environment": { "type": "string", "minLength": 1 },
     "company_name": { "type": "string", "minLength": 1 },
     "department_name": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
     "prepared_variables": { "type": "object" },
     "start_timestamp": { "type": "string", "minLength": 1 },
     "included_scenarios": {
@@ -22,10 +23,11 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "collected_at", "status_code"],
+        "required": ["name", "info_url", "collected_at", "status_code"],
         "additionalProperties": false,
         "properties": {
           "name": { "type": "string" },
+          "info_url": { "type": "string" },
           "collected_at": { "type": "string" },
           "status_code": { "type": "integer" },
           "error": { "type": ["string", "null"] },
@@ -50,6 +52,7 @@
           "feature": { "type": "string" },
           "scenario_id": { "type": "string" },
           "folder": { "type": "string" },
+          "description": { "type": ["string", "null"] },
           "correlation_id": { "type": ["string", "null"] },
           "correlation_error": { "type": ["string", "null"] },
           "request_timestamp": { "type": "string" },
@@ -74,9 +77,10 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["id", "expected", "obtained", "operator", "passed"],
+              "required": ["id", "field", "expected", "obtained", "operator", "passed"],
               "properties": {
                 "id": { "type": "string" },
+                "field": { "type": "string" },
                 "expected": {},
                 "obtained": {},
                 "operator": { "type": "string" },

@@ -38,6 +38,7 @@ class ScenarioResult:
     api_result: str
     final_status: str
     validation_rounds: list[dict[str, Any]] = field(default_factory=list)
+    description: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -56,6 +57,7 @@ class ScenarioResult:
             "api_result": self.api_result,
             "validation_rounds": self.validation_rounds,
             "final_status": self.final_status,
+            "description": self.description,
         }
 
 
@@ -70,6 +72,7 @@ def build_execution_record(
     company_name: str | None = None,
     department_name: str | None = None,
     prepared_variables: dict[str, Any] | None = None,
+    title: str | None = None,
 ) -> dict[str, Any]:
     tz = ZoneInfo(timezone_name)
     start_time = start_time.astimezone(tz)
@@ -89,6 +92,8 @@ def build_execution_record(
         record["department_name"] = department_name
     if prepared_variables:
         record["prepared_variables"] = prepared_variables
+    if title and title.strip():
+        record["title"] = title.strip()
     return record
 
 

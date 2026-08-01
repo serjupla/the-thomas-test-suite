@@ -4,23 +4,26 @@ from __future__ import annotations
 
 import argparse
 import logging
+import random
 import sys
 from datetime import datetime
 from pathlib import Path
 
 from rich.console import Console
 from rich.markup import escape
-from rich.progress import Progress
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from thomas import __version__
+from thomas import __version__ as _THOMAS_VERSION
 from thomas.connectors import ConnectorTechnicalError
 from thomas.core.loading import (
     ThomasFileError,
+    _find_project_root,
     load_and_validate,
     load_environment,
     load_scenarios,
     load_variables,
+    resolve_environment_path,
 )
 from thomas.core.variables import find_undefined_references
 from thomas.request.dispatch import run_request
@@ -28,6 +31,12 @@ from thomas.validate.orchestrator import run_validate
 from thomas.validate.preflight import check_missing_connectors
 
 console = Console()
+
+
+def _resolve_version() -> str:
+    """The installed package version, read live from thomas.__version__."""
+    return _THOMAS_VERSION
+
 
 _BANNER_ART_LINES = [
     "//",
@@ -38,7 +47,7 @@ _BANNER_ART_LINES = [
     "//  ▘ ▘ ▘▝▀▘  ▘ ▘ ▘▝▀ ▘▝ ▘▝▀▘▀▀   ▘▝▀▘▀▀  ▀  ▝▀ ▝▀▘▀▘▀ ▝▀▘",
     "//",
 ]
-_BANNER_ART_LINES[-2] += f" v.{__version__}"
+_BANNER_ART_LINES[-2] += f" v.{_THOMAS_VERSION}"
 BANNER = "\n".join(_BANNER_ART_LINES)
 
 _CREDENTIAL_KEYS = {"password", "username"}
@@ -105,12 +114,13 @@ def _build_request_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--output", type=Path, default=Path("executions"))
     parser.add_argument("--log-file", type=Path, default=Path("thomas.log"))
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--title", type=str, default=None, help="Optional short label for this execution, shown in the report header.")
 
 
 def _build_validate_parser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("validate", help="Run declared validations against an execution record.")
     parser.add_argument("--execution", required=True, type=Path)
-    parser.add_argument("--environment", required=True, type=Path)
+    parser.add_argument("--environment", required=False, default=None, type=Path)
     parser.add_argument("--log-file", type=Path, default=Path("thomas.log"))
     parser.add_argument("--verbose", action="store_true")
 
@@ -118,12 +128,13 @@ def _build_validate_parser(subparsers: argparse._SubParsersAction) -> None:
 def _build_report_parser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("report", help="Generate a self-contained HTML report from an execution record.")
     parser.add_argument("--execution", required=True, type=Path)
-    parser.add_argument("--environment", required=True, type=Path)
+    parser.add_argument("--environment", required=False, default=None, type=Path)
     parser.add_argument("--output", type=Path, default=Path("reports"))
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="thomas")
+    parser.add_argument("--version", "-v", action="version", version=_resolve_version())
     subparsers = parser.add_subparsers(dest="command", required=True)
     _build_init_parser(subparsers)
     _build_request_parser(subparsers)
@@ -207,6 +218,7 @@ def run_request_command(args: argparse.Namespace) -> int:
             variables=variables,
             output_dir=args.output,
             progress_callback=on_progress,
+            title=args.title,
         )
 
     import json
@@ -244,8 +256,6 @@ def _validate_scenario_files_exist(execution_record: dict) -> tuple[bool, str | 
 
     Returns (success: bool, error_message: str | None).
     """
-    from thomas.core.loading import _find_project_root
-
     project_root = _find_project_root()
     for scenario_result in execution_record["results"]:
         scenario_file_str = scenario_result["scenario_file"]
@@ -256,8 +266,47 @@ def _validate_scenario_files_exist(execution_record: dict) -> tuple[bool, str | 
     return True, None
 
 
+def _determine_environment_path(
+    args_environment: Path | None, execution_record: dict
+) -> tuple[Path | None, int | None]:
+    """Resolve which environment file `validate`/`report` should use (FR-005, FR-006, FR-007, FR-007a).
+
+    Returns (path, None) on success, or (None, exit_code) if resolution failed
+    (the error has already been printed to the console).
+    """
+    if args_environment is not None:
+        return args_environment, None
+
+    environment_name = execution_record["environment"]
+    try:
+        resolved_path = resolve_environment_path(environment_name, _find_project_root())
+    except ThomasFileError as exc:
+        console.print(f"[red]Could not resolve environment:[/red] {exc}")
+        return None, 1
+
+    console.print(f"Using environment '{environment_name}' (auto-detected from execution file)")
+    return resolved_path, None
+
+
+def _print_environment_mismatch_note(args_environment: Path | None, execution_record: dict, environment: dict) -> None:
+    """Print a note when an explicit --environment differs from the execution record's (FR-006a)."""
+    if args_environment is None:
+        return
+    execution_environment_name = execution_record["environment"]
+    supplied_environment_name = environment.get("environment_name")
+    if supplied_environment_name != execution_environment_name:
+        console.print(
+            f"[yellow]Note:[/yellow] supplied --environment '{supplied_environment_name}' differs from the "
+            f"environment recorded in the execution file ('{execution_environment_name}')."
+        )
+
+
 def run_validate_command(args: argparse.Namespace) -> int:
     import json
+
+    # Printed via plain print(), not console.print(): see the comment in
+    # run_request_command about rich word-wrapping fixed-width ASCII art.
+    print(BANNER)
 
     try:
         execution_record = load_and_validate(args.execution, "execution_v1.json")
@@ -265,11 +314,17 @@ def run_validate_command(args: argparse.Namespace) -> int:
         console.print(f"[red]Invalid execution record file:[/red] {exc}")
         return 1
 
+    environment_path, error_code = _determine_environment_path(args.environment, execution_record)
+    if error_code is not None:
+        return error_code
+
     try:
-        environment = load_environment(args.environment)
+        environment = load_environment(environment_path)
     except ThomasFileError as exc:
         console.print(f"[red]Invalid environment file:[/red] {exc}")
         return 1
+
+    _print_environment_mismatch_note(args.environment, execution_record, environment)
 
     scenarios_ok, scenario_error = _validate_scenario_files_exist(execution_record)
     if not scenarios_ok:
@@ -287,11 +342,17 @@ def run_validate_command(args: argparse.Namespace) -> int:
 
     prior_round_counts = [len(result["validation_rounds"]) for result in execution_record["results"]]
 
-    try:
-        updated_record = run_validate(execution_record, environment)
-    except ConnectorTechnicalError as exc:
-        console.print(f"[red]{escape(str(exc))}[/red]")
-        return 1
+    with Progress(console=console) as progress:
+        task = progress.add_task("Validating scenarios...", total=len(execution_record["results"]))
+
+        def on_progress(scenario_result):
+            progress.advance(task)
+
+        try:
+            updated_record = run_validate(execution_record, environment, progress_callback=on_progress)
+        except ConnectorTechnicalError as exc:
+            console.print(f"[red]{escape(str(exc))}[/red]")
+            return 1
 
     args.execution.write_text(json.dumps(updated_record, indent=2))
 
@@ -308,38 +369,69 @@ def run_validate_command(args: argparse.Namespace) -> int:
 def run_report_command(args: argparse.Namespace) -> int:
     from thomas.report.generator import generate_report_html, write_report
 
+    # Printed via plain print(), not console.print(): see the comment in
+    # run_request_command about rich word-wrapping fixed-width ASCII art.
+    print(BANNER)
+
     try:
         execution_record = load_and_validate(args.execution, "execution_v1.json")
     except ThomasFileError as exc:
         console.print(f"[red]Invalid execution record file:[/red] {exc}")
         return 1
 
+    environment_path, error_code = _determine_environment_path(args.environment, execution_record)
+    if error_code is not None:
+        return error_code
+
     try:
-        environment = load_environment(args.environment)
+        environment = load_environment(environment_path)
     except ThomasFileError as exc:
         console.print(f"[red]Invalid environment file:[/red] {exc}")
         return 1
+
+    _print_environment_mismatch_note(args.environment, execution_record, environment)
 
     if environment.get("company_logo_path"):
         logo_path = Path(environment["company_logo_path"])
         if not logo_path.is_absolute():
             environment = dict(environment)
-            environment["company_logo_path"] = str(args.environment.parent / logo_path)
+            environment["company_logo_path"] = str(environment_path.parent / logo_path)
 
     execution_file_bytes = args.execution.read_bytes()
 
-    try:
-        html = generate_report_html(execution_record, environment, execution_file_bytes)
-    except ThomasFileError as exc:
-        console.print(f"[red]Invalid company_logo_path:[/red] {exc}")
-        return 1
+    with Progress(
+        SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console
+    ) as progress:
+        progress.add_task("Generating report...", total=None)
 
-    output_path = write_report(html, args.execution, args.output, datetime.now().astimezone())
-    console.print(f"Report written to [bold]{output_path}[/bold]")
+        try:
+            html = generate_report_html(execution_record, environment, execution_file_bytes)
+        except ThomasFileError as exc:
+            console.print(f"[red]Invalid company_logo_path:[/red] {exc}")
+            return 1
+
+        output_path = write_report(html, args.execution, args.output, datetime.now().astimezone())
+
+    report_uri = output_path.resolve().as_uri()
+    console.print(f"Report written to [bold][link={report_uri}]{escape(str(output_path))}[/link][/bold]")
+
+    if random.random() < 0.4:
+        console.print(
+            "⭐ Enjoying Thomas? Star us on GitHub: https://github.com/serjupla/the-thomas-test-suite"
+        )
+
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if "--version" in argv or "-v" in argv:
+        # Short-circuits before subcommand parsing, even as `thomas <cmd> --version`
+        # (argparse subparsers would otherwise swallow it as an unrecognized
+        # subcommand argument): FR-001, Edge Case in spec.md.
+        print(_resolve_version())
+        return 0
+
     parser = _build_parser()
     args = parser.parse_args(argv)
 

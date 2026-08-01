@@ -13,11 +13,13 @@
 
 # The Thomas Test Suite
 
-The Thomas is a **data-driven API test automation** tool. It fires HTTP
-requests from scenarios described entirely in JSON and validates their
-side effects across multiple heterogeneous data sources (relational
-databases, NoSQL, messaging topics), with native support for asynchronous
-processing of indeterminate duration.
+The Thomas is a **functional, data-driven API test automation tool**. 
+It fires HTTP requests from scenarios described entirely in JSON and 
+validates their side effects across multiple heterogeneous data 
+sources (relational databases, NoSQL, messaging topics), with native 
+support for asynchronous processing of indeterminate duration. It's 
+designed to be used by developers and non-developers alike, including 
+QAs and product analysts.
 
 What sets The Thomas apart from other API testing frameworks (Karate,
 Tavern, Robot Framework) is the simultaneous combination of five
@@ -46,11 +48,14 @@ pip install "the-thomas-test-suite[oracle]"
 ## Quickstart
 
 ```bash
+# Create and activate a virtual environment for the project
+python3 -m venv .venv
+source .venv/bin/activate
+
 pip install the-thomas-test-suite
 
 # Create a new Thomas project in the current directory
 thomas init
-cd <project-directory>
 
 # Run the bundled examples — no local server, no extra terminal, no
 # credentials. They call a real public API (jsonplaceholder.typicode.com)
@@ -63,6 +68,10 @@ thomas request \
 
 `thomas request` prints the path of the execution record it just wrote.
 Use that same path to validate and generate the report:
+
+> [!TIP]
+> Replace `<execution-record-from-above>` below with the actual filename
+> `thomas request` printed.
 
 ```bash
 thomas validate --execution executions/<execution-record-from-above>.json \
@@ -87,6 +96,16 @@ response, and a scenario momentarily left `awaiting_validation` until
 `thomas validate` confirms it.
 
 ![thomas request running against the bundled examples](https://raw.githubusercontent.com/serjupla/the-thomas-test-suite/main/assets/screenshot.png)
+
+## HTML Report
+
+Every run also produces a self-contained, bilingual HTML report with three views: results, environment, and timeline.
+
+![Results view](<https://raw.githubusercontent.com/serjupla/the-thomas-test-suite/main/assets/The Thomas Test Report-01-Results View.png>)
+
+![Environment view](<https://raw.githubusercontent.com/serjupla/the-thomas-test-suite/main/assets/The Thomas Test Report-02-Environment View.png>)
+
+![Timeline view](<https://raw.githubusercontent.com/serjupla/the-thomas-test-suite/main/assets/The Thomas Test Report-03-Timeline View.png>)
 
 ## Active development
 

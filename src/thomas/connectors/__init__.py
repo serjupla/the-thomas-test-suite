@@ -18,6 +18,13 @@ class ConnectorTechnicalError(Exception):
 
 
 class BaseConnector(ABC):
+    NEVER_SHOW_FIELDS: frozenset[str] = frozenset()
+    """Config field names (as they appear in the environment's connectors.<name>
+    block) that must NEVER appear in a generated report — not masked, not
+    revealable, in no state. Empty by default. A connector type with secrets
+    beyond the generic sensitive-keyword match (KEY/TOKEN/SECRET/PASSWORD/...)
+    MUST override this. See docs/architecture/05-connectors.md."""
+
     def __init__(self, config: dict):
         self.config = config
 
@@ -30,6 +37,15 @@ class BaseConnector(ABC):
         """Returns the raw obtained value for validation["field"]; raises
         ConnectorTechnicalError on infrastructure failure — never returns None
         to silently signal a failure."""
+
+    def describe_query(self, validation: dict) -> str:
+        """Return a short, human-readable representation of the query/operation
+        this validation performs, for display in the report's Query column.
+        Default falls back to str(validation.get("query", validation["id"]))
+        so an override is never strictly required, but every connector type
+        SHOULD override this with a representation appropriate to its own
+        query/operation model."""
+        return str(validation.get("query", validation["id"]))
 
     @abstractmethod
     def disconnect(self) -> None:

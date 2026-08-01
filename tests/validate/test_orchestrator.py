@@ -172,6 +172,26 @@ def test_connector_technical_error_captured_without_aborting_scenario(tmp_path, 
     assert results[1]["passed"] is True
 
 
+def test_field_and_query_are_persisted_for_both_success_and_technical_error_checks(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    scenario_file = _write_scenario(
+        tmp_path, "sc1.json",
+        [
+            {"id": "v_fail", "connector": "fake_main", "field": "balance", "operator": "equals", "expected_value": 1},
+            {"id": "v_ok", "connector": "fake_main", "field": "balance", "operator": "equals", "expected_value": 999.0},
+        ],
+    )
+    execution_record = {"results": [_scenario_result(scenario_file)]}
+
+    updated = run_validate(execution_record, ENVIRONMENT_WITH_FAILURE)
+
+    results = updated["results"][0]["validation_rounds"][0]["results"]
+    assert results[0]["field"] == "balance"
+    assert results[0]["query"] == "lookup: v_fail"
+    assert results[1]["field"] == "balance"
+    assert results[1]["query"] == "lookup: v_ok"
+
+
 def test_unexpected_exception_during_run_validation_is_captured_per_validation(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     scenario_file_1 = _write_scenario(

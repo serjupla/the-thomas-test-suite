@@ -52,30 +52,31 @@ def print_scaffold_result(result: ScaffoldResult, banner: str = "") -> None:
     )
 
     # Print next steps
-    dest_str = str(result.destination.resolve())
     console.print("[bold]Next steps:[/bold]")
-    console.print(f"  1. cd {dest_str}")
     console.print(
-        "  2. thomas request --environment examples/config/environments/example.json \\\\"
+        "  1. thomas request --environment examples/config/environments/example.json \\"
     )
     console.print(
-        "                    --folder examples/scenarios \\\\"
+        "                    --folder examples/scenarios \\"
     )
     console.print(
-        "                    --variables examples/config/variables.example.json"
+        "                    --variables examples/config/variables.example.json \\"
+    )
+    console.print(
+        '                    --title "Thomas Quickstart"'
     )
     console.print(
         "     (uses a real public API, no local server needed — "
         "note the execution record path it prints)"
     )
     console.print(
-        "  3. thomas validate --execution executions/<execution-record-from-step-2>.json \\\\"
+        "  2. thomas validate --execution executions/<execution-record-from-step-1>.json \\"
     )
     console.print(
         "                     --environment examples/config/environments/example.json"
     )
     console.print(
-        "  4. thomas report --execution executions/<execution-record-from-step-2>.json \\\\"
+        "  3. thomas report --execution executions/<execution-record-from-step-1>.json \\"
     )
     console.print(
         "                   --environment examples/config/environments/example.json"

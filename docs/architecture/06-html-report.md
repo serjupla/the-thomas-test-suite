@@ -13,9 +13,13 @@ spec 009's CSS custom properties as-is.
 ## Non-negotiable requirement: single self-contained file
 
 - All CSS and JS embedded inline in the `.html` (no external files).
-- The Thomas logo embedded as **inline SVG** (not `<img>` with base64, per
-  project decision — allows CSS styling, including color changes in dark
-  mode).
+- The Thomas icon (`thomas-icon.svg` for light mode, `thomas-icon-dark.svg`
+  for dark mode — both packaged under `src/thomas/report/assets/`) is
+  embedded as **inline SVG** (not `<img>` with base64, per project
+  decision — allows CSS styling, including color changes in dark mode).
+  Both variants are always inlined into the page; a CSS rule keyed off
+  `[data-theme]`/`prefers-color-scheme` shows only the one matching the
+  active theme (spec 013).
 - No network calls at viewing time (no external CDN, no charting library —
   the donut chart, mini-cards, Gantt timeline, and latency scatter plot are
   all inline CSS/SVG, computed in Python and handed to the template as
@@ -52,8 +56,14 @@ content.
 - **Top bar**: The Thomas icon + product name + dark-mode toggle.
 - **Banner**: company logo (inline SVG, from `environment.company_logo_path`,
   omitted entirely when absent), company name, department name, system
-  name, and the report generation timestamp (formatted in the environment's
-  `timezone`), followed by the tab navigation.
+  name, and the report generation timestamp — labeled "Gerado em"/
+  "Generated on" (spec 013; previously "Executado em"/"Run on") — formatted
+  in the environment's `timezone`, followed by the tab navigation.
+- **Report title section** (optional, spec 013): a dedicated section
+  rendered directly below the banner when the execution record carries a
+  `title` (set via `thomas request --title "<text>"`); omitted entirely
+  (no empty placeholder) when absent. Rendered as literal, HTML-escaped
+  text via Jinja's `autoescape=True` — no additional sanitization step.
 - The execution file's SHA-256 signature, previously shown directly under
   the header (spec 008), now lives inside the **Ambiente de execução**
   view only (see below).
@@ -107,7 +117,20 @@ content.
      rounds (each with its own checks table and aggregated result) once
      at least one round has occurred. These three states are derived
      purely from `final_status` + `validation_rounds` length — no
-     scenario-file re-parsing (research.md §2 of spec 010).
+     scenario-file re-parsing (research.md §2 of spec 010). Each round's
+     table (spec 013) includes: the round timestamp converted to the
+     report's configured timezone; a **Field** column (immediately before
+     **Operator**) showing the checked field's name; and a **Query**
+     column showing the query/operation used to obtain the value
+     (`connector.describe_query`), truncated with an ellipsis + hover
+     tooltip and a copy button when long, subject to the same
+     sensitive-keyword masking / never-show denylist rules as any other
+     field (keyed off the checked field's name, not the query text — see
+     "Secret masking" below).
+  - **Scenario description** (spec 013): when the source scenario
+    definition has a `description`, it is shown at the top of the
+    scenario's detail panel (wrapped in full, never truncated); omitted
+    entirely (no empty block) when the scenario has none.
 
 ## Ambiente de execução view
 
@@ -138,12 +161,39 @@ HTML (not just visually collapsed) when its underlying data is absent:
 
 Any key/value pair — connector config field at any nesting depth, or a
 prepared variable — whose key case-insensitively contains `KEY`, `TOKEN`,
-`SECRET`, or `PASSWORD` is masked by default (`••••••••••`) with an
-on-demand reveal control. The real value is still present in the HTML
+`SECRET`, `PASSWORD`, `SENHA`, `CREDENTIAL`, `SECURITY`, or (spec 013)
+`USER`/`USUÁRIO`/`USUARIO` is masked by default (`••••••••••`) with an
+on-demand reveal control, styled in the same blue accent color as the
+report's copy buttons (spec 013 — previously a muted gray, now visually
+consistent with `.copy-btn`). The real value is still present in the HTML
 source (in a `data-real-value` attribute) so the reveal toggle works
 without a server round-trip — this is a UI/at-a-glance safeguard, not
 encryption; the report's self-contained, single-file design means anyone
 with the file already has the raw execution/environment data.
+
+#### Never-show denylist (spec 013)
+
+Some connector fields are too sensitive for even the reveal-on-demand
+safeguard above (e.g. the Oracle connector's `password`, which is on
+`OracleConnector.NEVER_SHOW_FIELDS`). For these fields, the report:
+
+- Lists the field **name** (so the reader knows the field exists and was
+  intentionally withheld) with a fixed "not displayed" indicator.
+- Never writes the real value into the rendered HTML in **any** state —
+  no `data-real-value` attribute, no reveal button, no masked placeholder
+  with a working toggle. This is a stronger guarantee than the mask/
+  reveal mechanism above, whose real value is always present in the page
+  source even while visually hidden.
+- Applies to the connector-config view (`environment_view.connectors`)
+  and to the Query column of any validation check whose checked field is
+  on the connector's `NEVER_SHOW_FIELDS` (never-show takes precedence
+  over the generic sensitive-keyword match).
+
+Each connector type declares its own `NEVER_SHOW_FIELDS: frozenset[str]`
+class attribute (see docs/architecture/05-connectors.md); the Fake
+connector declares none (its report behavior is unchanged). Adding a new
+connector type requires an explicit `NEVER_SHOW_FIELDS` decision — see the
+developer-consultation directive in 05-connectors.md.
 
 ### `prepared_variables` (execution record, additive field)
 
@@ -165,19 +215,32 @@ top-level field it doesn't touch.
   round's own outcome; a badge at the row's end shows the scenario's
   final aggregated status. When every event in the record shares the same
   timestamp, all markers render at the 50% position rather than dividing
-  by zero.
+  by zero. When the environment has `services_info` configured, a
+  dedicated, always-first **information services** row (spec 013) shows a
+  diamond-shaped marker for each collection event, visually distinct from
+  the per-scenario request/response/validation markers; the row is
+  omitted entirely when no information-services data was collected.
 - **Log visualization** (toggle): a single chronological list of every
   event across all scenarios — request, response, validation round, and
   service-collection events — interleaved by timestamp.
 - Clicking a scenario's row (either visualization) expands a local,
   timestamped event log for just that scenario.
 - **Latency section**: summary statistics (average, P95, maximum request
-  latency in ms) and an inline SVG scatter plot — X axis is real request
-  time, Y axis is latency, points colored/grouped by endpoint path with a
-  legend. Scenarios with a technical error (no valid response) are
-  excluded, since there is no latency to measure. When no scenario has a
-  measurable latency, an empty-state message is shown instead of a
-  degenerate chart.
+  latency in ms) and a scatter plot — X axis is real request time, Y axis
+  is latency, points colored/grouped by endpoint path with a legend.
+  Scenarios with a technical error (no valid response) are excluded,
+  since there is no latency to measure. When no scenario has a measurable
+  latency, an empty-state message is shown instead of a degenerate chart.
+  Points render as small round markers (`<span class="latency-point">`,
+  fixed 7×7px, `border-radius: 50%`) absolutely positioned (via CSS
+  `left`/`top` percentages, in a separate overlay `<div>` on top of the
+  gridline SVG) — **not** as SVG `<circle>` elements inside the scaled
+  gridline SVG itself (spec 013): the gridline SVG uses
+  `viewBox="0 0 100 100" preserveAspectRatio="none"`, which stretches any
+  geometry sized in viewBox units non-uniformly whenever the plot's pixel
+  aspect ratio isn't square — visibly distorting a `<circle>` into an
+  ellipse. A CSS-positioned marker with a fixed pixel size is immune to
+  that stretch and stays visually round at any container width.
 
 ## Technical generation
 

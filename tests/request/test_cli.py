@@ -3,7 +3,7 @@ import json
 import pytest
 import responses
 
-from thomas.cli import BANNER, main
+from thomas.cli import BANNER, _resolve_version, main
 
 VALID_ENVIRONMENT = {
     "schema_version": 1,
@@ -29,6 +29,32 @@ def write_json(path, document) -> None:
     path.write_text(json.dumps(document))
 
 
+def test_version_flag_prints_single_line_matching_installed_version(capsys):
+    exit_code = main(["--version"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out == f"{_resolve_version()}\n"
+
+
+def test_short_version_flag_prints_single_line_matching_installed_version(capsys):
+    exit_code = main(["-v"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out == f"{_resolve_version()}\n"
+
+
+def test_version_flag_short_circuits_even_combined_with_a_subcommand(capsys):
+    exit_code = main(["init", "--version"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out == f"{_resolve_version()}\n"
+    banner_first_line = BANNER.strip().splitlines()[0]
+    assert banner_first_line not in captured.out
+
+
 @responses.activate
 def test_request_command_exit_zero_on_success(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
@@ -50,6 +76,59 @@ def test_request_command_exit_zero_on_success(tmp_path, monkeypatch):
 
     assert exit_code == 0
     assert list((tmp_path / "executions").glob("*.json"))
+
+
+@responses.activate
+def test_request_command_persists_title_when_supplied(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    responses.add(responses.POST, "https://example.test/api/orders", json={}, status=201)
+
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, VALID_ENVIRONMENT)
+    scenarios_dir = tmp_path / "scenarios"
+    scenarios_dir.mkdir()
+    write_json(scenarios_dir / "a.json", VALID_SCENARIO)
+
+    exit_code = main([
+        "request",
+        "--environment", str(env_path),
+        "--folder", str(scenarios_dir),
+        "--output", str(tmp_path / "executions"),
+        "--log-file", str(tmp_path / "thomas.log"),
+        "--title", "Release 4.2 — Regression Pass",
+    ])
+
+    assert exit_code == 0
+    execution_file = next((tmp_path / "executions").glob("*.json"))
+    execution_record = json.loads(execution_file.read_text())
+    assert execution_record["title"] == "Release 4.2 — Regression Pass"
+
+
+@responses.activate
+@pytest.mark.parametrize("title", ["", "   "])
+def test_request_command_omits_title_when_blank_or_whitespace(tmp_path, monkeypatch, title):
+    monkeypatch.chdir(tmp_path)
+    responses.add(responses.POST, "https://example.test/api/orders", json={}, status=201)
+
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, VALID_ENVIRONMENT)
+    scenarios_dir = tmp_path / "scenarios"
+    scenarios_dir.mkdir()
+    write_json(scenarios_dir / "a.json", VALID_SCENARIO)
+
+    exit_code = main([
+        "request",
+        "--environment", str(env_path),
+        "--folder", str(scenarios_dir),
+        "--output", str(tmp_path / "executions"),
+        "--log-file", str(tmp_path / "thomas.log"),
+        "--title", title,
+    ])
+
+    assert exit_code == 0
+    execution_file = next((tmp_path / "executions").glob("*.json"))
+    execution_record = json.loads(execution_file.read_text())
+    assert "title" not in execution_record
 
 
 @responses.activate

@@ -81,6 +81,20 @@ def test_run_validation_uses_bind_variable_and_returns_single_row_value(monkeypa
     assert "corr-1" not in query
 
 
+def test_never_show_fields_includes_password():
+    from thomas.connectors.oracle import OracleConnector
+
+    assert OracleConnector.NEVER_SHOW_FIELDS == frozenset({"password"})
+
+
+def test_describe_query_returns_literal_sql_text(monkeypatch):
+    connector, _, _ = _make_connector(monkeypatch, cursor=FakeCursor([], []))
+
+    query = connector.describe_query({"query": "SELECT status FROM t WHERE id = :correlation_id", "field": "status"})
+
+    assert query == "SELECT status FROM t WHERE id = :correlation_id"
+
+
 def test_resolve_connector_type_returns_oracle_connector(monkeypatch):
     _install_fake_oracledb(monkeypatch, MagicMock())
     from thomas.connectors import resolve_connector_type

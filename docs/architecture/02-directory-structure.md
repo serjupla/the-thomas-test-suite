@@ -16,14 +16,15 @@ thomas-test-suite/
 │       ├── 04-validation-engine-operators.md
 │       ├── 05-connectors.md
 │       ├── 06-html-report.md
-│       └── 07-cli-commands.md
+│       ├── 07-cli-commands.md
+│       └── init-command.md
 ├── specs/
 │   └── prompts/                       # kept in Portuguese (SDD /specify inputs)
 │       └── prompt_*.md
 ├── src/
 │   └── thomas/
-│       ├── __init__.py
-│       ├── cli.py                     # CLI entrypoint (request/validate/report)
+│       ├── __init__.py                # exposes __version__
+│       ├── cli.py                     # CLI entrypoint (init/request/validate/report)
 │       ├── schemas/                   # versioned JSON Schemas
 │       │   ├── scenario_v1.json
 │       │   ├── environment_v1.json
@@ -37,20 +38,32 @@ thomas-test-suite/
 │       ├── operators/
 │       │   └── engine.py              # generic comparison engine (equals, greater_than, etc.)
 │       ├── connectors/
-│       │   ├── base.py                # abstract connector interface
+│       │   ├── __init__.py            # BaseConnector abstract class + dispatch by `type`
 │       │   ├── oracle.py
-│       │   ├── db2.py
-│       │   ├── mongo.py
-│       │   └── kafka.py
+│       │   └── fake.py                # deterministic connector used by examples/tests
+│       │       # (db2.py, mongo.py, kafka.py: planned, not yet implemented — see ROADMAP.md F06-F08)
 │       ├── request/
 │       │   └── dispatch.py            # `thomas request` logic
-│       ├── validation/
-│       │   └── validation_runner.py   # `thomas validate` logic
+│       ├── validate/
+│       │   ├── preflight.py
+│       │   └── orchestrator.py        # `thomas validate` logic
+│       ├── commands/
+│       │   └── init.py                # `thomas init` logic
+│       ├── scaffold/                  # templates/logic backing `thomas init`
+│       │   ├── scaffolder.py
+│       │   ├── loader.py
+│       │   ├── validator.py
+│       │   ├── fileops.py
+│       │   ├── reporter.py
+│       │   ├── README.dist
+│       │   └── examples/              # packaged example config/scenarios
 │       └── report/
-│           ├── generation.py          # `thomas report` logic
+│           ├── generator.py           # `thomas report` logic
+│           ├── strings.py             # bilingual (EN/PT) UI strings
 │           ├── template.html.j2       # main Jinja2 template (bilingual, EN/PT)
 │           └── assets/
-│               └── logo.svg           # The Thomas logo (provided by the maintainer)
+│               ├── thomas-icon.svg        # light-mode icon (inline SVG)
+│               └── thomas-icon-dark.svg   # dark-mode icon (inline SVG)
 ├── tests/
 │   └── ...                            # mirrors the src/thomas structure
 ├── pyproject.toml

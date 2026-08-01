@@ -25,3 +25,13 @@ def test_raises_technical_error_for_id_in_neither_map():
 
     with pytest.raises(ConnectorTechnicalError, match="balance_check"):
         connector.run_validation({"id": "balance_check"}, "corr-1")
+
+
+def test_never_show_fields_unchanged_empty():
+    connector = FakeConnector({"values": {}, "failures": {}})
+    assert connector.NEVER_SHOW_FIELDS == frozenset()
+
+
+def test_describe_query_returns_lookup_label():
+    connector = FakeConnector({"values": {}, "failures": {}})
+    assert connector.describe_query({"id": "balance_check"}) == "lookup: balance_check"

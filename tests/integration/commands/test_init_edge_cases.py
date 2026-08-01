@@ -69,7 +69,6 @@ class TestInitEdgeCases:
                 # Try to validate (write permission check might fail)
                 validate_destination_path(readonly_dir)
             except Exception:
-                # Expected to raise some error
                 pass
             finally:
                 # Restore permissions for cleanup

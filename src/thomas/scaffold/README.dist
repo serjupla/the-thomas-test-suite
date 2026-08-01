@@ -11,7 +11,8 @@ internet connection.
 ```bash
 thomas request --environment examples/config/environments/example.json \
                 --folder examples/scenarios \
-                --variables examples/config/variables.example.json
+                --variables examples/config/variables.example.json \
+                --title "Thomas Quickstart"
 ```
 
 `thomas request` prints the path of the execution record it just wrote
@@ -71,7 +72,8 @@ EOF
 thomas request \
   --environment config/environments/example.json \
   --folder scenarios \
-  --variables config/variables.example.json
+  --variables config/variables.example.json \
+  --title "My Test Run"
 ```
 
 ### 4. Generate Report

@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, PackageLoader
 
+from thomas.connectors import resolve_connector_type
 from thomas.core.loading import ThomasFileError
 from thomas.report.strings import STRINGS
 
@@ -28,7 +29,7 @@ _FINAL_STATUS_TO_PT = {
     "awaiting_validation": "aguardando",
 }
 _SENSITIVE_KEY_PATTERN = re.compile(
-    r"KEY|TOKEN|SECRET|PASSWORD|SENHA|CREDENTIAL|SECURITY", re.IGNORECASE
+    r"KEY|TOKEN|SECRET|PASSWORD|SENHA|CREDENTIAL|SECURITY|USER|USUÁRIO|USUARIO", re.IGNORECASE
 )
 _MASK_DISPLAY = "•" * 10
 
@@ -80,7 +81,7 @@ def _build_header(environment: dict, generated_at: datetime) -> dict:
         "department_name": environment.get("department_name"),
         "system_name": environment["system_name"],
         "environment_name": environment["environment_name"],
-        "generated_at": generated_at.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S %Z"),
+        "generated_at": generated_at.astimezone(tz).strftime("%d/%m/%Y %H:%M:%S"),
     }
 
 
@@ -205,40 +206,49 @@ def _is_sensitive_key(key: str) -> bool:
     return bool(_SENSITIVE_KEY_PATTERN.search(key))
 
 
-def _flatten_kv(value, prefix: str = "") -> list[dict]:
+def _is_never_show_key(key: str, never_show_fields: frozenset[str]) -> bool:
+    leaf_name = key.rsplit(".", 1)[-1].split("[", 1)[0]
+    return leaf_name in never_show_fields
+
+
+def _flatten_kv(value, prefix: str = "", never_show_fields: frozenset[str] = frozenset()) -> list[dict]:
     """Recursively flatten a JSON value into display rows with dotted-path keys.
 
-    Each row: {"key", "value", "is_sensitive", "value_masked"}. A key is
-    sensitive if any path segment case-insensitively contains KEY/TOKEN/
-    SECRET/PASSWORD (research.md §8).
+    Each row: {"key", "value", "is_sensitive", "value_masked", "is_never_show"}.
+    A key is sensitive if any path segment case-insensitively contains KEY/
+    TOKEN/SECRET/PASSWORD/... (research.md §8). A key on `never_show_fields`
+    (connector-declared denylist) takes precedence over the sensitive-keyword
+    match and never carries a real value into the rendered row.
     """
     rows: list[dict] = []
     if isinstance(value, dict):
         for key, sub_value in value.items():
             child_prefix = f"{prefix}.{key}" if prefix else str(key)
             if isinstance(sub_value, (dict, list)) and sub_value:
-                rows.extend(_flatten_kv(sub_value, child_prefix))
+                rows.extend(_flatten_kv(sub_value, child_prefix, never_show_fields))
             else:
-                rows.append(_leaf_row(child_prefix, sub_value))
+                rows.append(_leaf_row(child_prefix, sub_value, never_show_fields))
     elif isinstance(value, list):
         for index, item in enumerate(value):
             child_prefix = f"{prefix}[{index}]"
             if isinstance(item, (dict, list)) and item:
-                rows.extend(_flatten_kv(item, child_prefix))
+                rows.extend(_flatten_kv(item, child_prefix, never_show_fields))
             else:
-                rows.append(_leaf_row(child_prefix, item))
+                rows.append(_leaf_row(child_prefix, item, never_show_fields))
     else:
-        rows.append(_leaf_row(prefix, value))
+        rows.append(_leaf_row(prefix, value, never_show_fields))
     return rows
 
 
-def _leaf_row(key: str, value) -> dict:
+def _leaf_row(key: str, value, never_show_fields: frozenset[str] = frozenset()) -> dict:
+    is_never_show = _is_never_show_key(key, never_show_fields)
     is_sensitive = _is_sensitive_key(key)
     return {
         "key": key,
-        "value": value,
+        "value": None if is_never_show else value,
         "is_sensitive": is_sensitive,
-        "value_masked": _MASK_DISPLAY if is_sensitive else value,
+        "is_never_show": is_never_show,
+        "value_masked": None if is_never_show else (_MASK_DISPLAY if is_sensitive else value),
     }
 
 
@@ -277,6 +287,7 @@ def _build_check_rows(checks: list[dict]) -> dict:
     rows = [
         {
             "id": c["id"],
+            "field": c.get("field", ""),
             "expected": c["expected"],
             "obtained": c["obtained"],
             "operator": c["operator"],
@@ -296,25 +307,44 @@ def _resolve_validation_outcome(validation: dict) -> str:
     return "failed"
 
 
-def _build_validation_rounds(validation_rounds: list[dict]) -> list[dict]:
+def _resolve_check_visibility(field_name: str, connector_name: str, connectors: dict) -> str:
+    """Per research.md D5: visibility of a check's Field/Query cells is keyed off
+    the checked field's own name, using the field's connector's NEVER_SHOW_FIELDS
+    (never_show takes precedence over the generic sensitive-keyword match)."""
+    connector_config = connectors.get(connector_name) or {}
+    connector_type = connector_config.get("type")
+    never_show_fields = resolve_connector_type(connector_type).NEVER_SHOW_FIELDS if connector_type else frozenset()
+    if field_name in never_show_fields:
+        return "never_show"
+    if _is_sensitive_key(field_name):
+        return "sensitive"
+    return "visible"
+
+
+def _build_validation_rounds(validation_rounds: list[dict], connectors: dict, tz: ZoneInfo) -> list[dict]:
     rounds = []
     for round_entry in validation_rounds:
         outcomes = [_resolve_validation_outcome(v) for v in round_entry["results"]]
         round_status = "reprovado" if any(o != "passed" for o in outcomes) else "aprovado"
-        checks = [
-            {
+        checks = []
+        for v in round_entry["results"]:
+            field_name = v.get("field", "")
+            visibility = _resolve_check_visibility(field_name, v["connector"], connectors)
+            checks.append({
                 "id": v["id"],
                 "connector": v["connector"],
+                "field": field_name,
                 "operator": v["operator"],
                 "expected": v["expected"],
                 "obtained": v["obtained"],
                 "outcome": _resolve_validation_outcome(v),
                 "technical_error": v.get("technical_error"),
-            }
-            for v in round_entry["results"]
-        ]
+                "query_display": v.get("query"),
+                "query_visibility": visibility,
+            })
         rounds.append({
             "timestamp": round_entry["timestamp"],
+            "timestamp_label": _format_datetime_br(round_entry["timestamp"], tz),
             "environment_used": round_entry["environment_used"],
             "status": round_status,
             "checks": checks,
@@ -328,7 +358,7 @@ def _status_code_class(status_code: int | None) -> str | None:
     return f"{status_code // 100}xx"
 
 
-def _build_scenario_detail(result: dict) -> dict:
+def _build_scenario_detail(result: dict, connectors: dict, tz: ZoneInfo) -> dict:
     request_sent = result["request_sent"]
     requisicao = {
         "method": request_sent.get("method"),
@@ -352,7 +382,7 @@ def _build_scenario_detail(result: dict) -> dict:
 
     validation_rounds = result.get("validation_rounds") or []
     if validation_rounds:
-        rounds = _build_validation_rounds(validation_rounds)
+        rounds = _build_validation_rounds(validation_rounds, connectors, tz)
         validacao = {
             "state": "occurred",
             "status": _worst_of([r["status"] for r in rounds]),
@@ -368,6 +398,7 @@ def _build_scenario_detail(result: dict) -> dict:
         "resposta": resposta,
         "verificacoes": verificacoes,
         "validacao": validacao,
+        "description": result.get("description"),
     }
 
 
@@ -387,7 +418,7 @@ def _duration_display(result: dict) -> str:
     return _format_duration(response_ts - request_ts)
 
 
-def _build_dashboard(results: list[dict], tz: ZoneInfo) -> dict:
+def _build_dashboard(results: list[dict], tz: ZoneInfo, connectors: dict) -> dict:
     counts = _status_counts(results)
     percentages = _percentages(counts)
 
@@ -402,7 +433,7 @@ def _build_dashboard(results: list[dict], tz: ZoneInfo) -> dict:
             "time_short": _format_time_short(result["request_timestamp"], tz),
             "time_full": _format_time_full(result["request_timestamp"], tz),
             "duration_display": _duration_display(result),
-            "detail": _build_scenario_detail(result),
+            "detail": _build_scenario_detail(result, connectors, tz),
         })
 
     return {
@@ -433,6 +464,7 @@ def _build_services_info_view(execution_record: dict, tz: ZoneInfo) -> list[dict
         error = service.get("error")
         entry = {
             "name": service["name"],
+            "info_url": service.get("info_url"),
             "status": "error" if error else "ok",
             "collected_at": _format_datetime_br(service["collected_at"], tz),
             "status_code": service.get("status_code"),
@@ -452,10 +484,11 @@ def _build_connectors_view(environment: dict) -> list[dict] | None:
     view = []
     for name, connector in connectors.items():
         config = {k: v for k, v in connector.items() if k != "type"}
+        never_show_fields = resolve_connector_type(connector["type"]).NEVER_SHOW_FIELDS
         view.append({
             "name": name,
             "type": connector.get("type"),
-            "config_masked": _flatten_kv(config),
+            "config_masked": _flatten_kv(config, never_show_fields=never_show_fields),
         })
     return view
 
@@ -558,6 +591,24 @@ def _build_gantt(results: list[dict], events: list[dict], tz: ZoneInfo) -> dict:
         return _format_time_short(ts, tz)
 
     rows = []
+    service_events = [e for e in events if e["kind"] == "service_collected"]
+    if service_events:
+        rows.append({
+            "scenario_id": None,
+            "is_services_row": True,
+            "markers": [
+                {
+                    "type": "service",
+                    "position": _position(e["timestamp"]),
+                    "timestamp_label": _label(e["timestamp"]),
+                    "outcome": e["outcome"],
+                    "service_name": e["service_name"],
+                }
+                for e in service_events
+            ],
+            "final_status": None,
+            "status_pt": None,
+        })
     for result in results:
         markers = [{
             "type": "request",
@@ -706,11 +757,12 @@ def generate_report_html(execution_record: dict, environment: dict, execution_fi
     context = {
         "strings": strings,
         "active_tab_default": "dashboard",
-        "thomas_logo_svg": _read_package_svg("thomas-logo.svg"),
-        "thomas_logo_dark_svg": _read_package_svg("thomas-logo-dark.svg"),
+        "thomas_icon_svg": _read_package_svg("thomas-icon.svg"),
+        "thomas_icon_dark_svg": _read_package_svg("thomas-icon-dark.svg"),
         "company_logo_svg": _resolve_company_logo_svg(environment),
+        "report_title": {"text": execution_record.get("title")},
         "header": _build_header(environment, generated_at),
-        "dashboard": _build_dashboard(results, tz),
+        "dashboard": _build_dashboard(results, tz, environment.get("connectors") or {}),
         "environment_view": _build_environment_view(execution_record, environment, execution_signature, tz),
         "timeline_view": _build_timeline_view(execution_record, tz),
     }

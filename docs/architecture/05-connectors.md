@@ -7,6 +7,11 @@ data source type:
 
 ```python
 class BaseConnector(ABC):
+    NEVER_SHOW_FIELDS: frozenset[str] = frozenset()
+    """Config field names (as they appear in the environment's
+    connectors.<name> block) that must NEVER appear in a generated report —
+    not masked, not revealable, in no state. Empty by default."""
+
     def __init__(self, config: dict):
         """config comes directly from the environment's `connectors.<name>` block."""
 
@@ -24,10 +29,34 @@ class BaseConnector(ABC):
         returning None.
         """
 
+    def describe_query(self, validation: dict) -> str:
+        """Returns a short, human-readable representation of the query/
+        operation this validation performs, for display in the report's
+        Query column (e.g. the literal SQL text for a relational connector,
+        a filter-document rendering for a document-store connector, a
+        "topic + filter" description for a topic-based connector). Default
+        falls back to `str(validation.get("query", validation["id"]))`, so
+        overriding it is never strictly required, but every connector type
+        SHOULD override this with a representation appropriate to its own
+        query/operation model."""
+
     @abstractmethod
     def disconnect(self) -> None:
         """Releases the connection."""
 ```
+
+### Developer-consultation directive for new connector types
+
+Whenever a new connector type is added, its author **MUST** decide, for
+every config field it accepts, whether it is a secret that must be added
+to `NEVER_SHOW_FIELDS` (never shown in the report, in any state) or an
+ordinary field left to the generic mask/reveal keyword matching — and
+SHOULD override `describe_query` with a representation appropriate to the
+connector's own query/operation model (unless the default fallback already
+produces something meaningful). A PR adding a connector without an
+explicit `NEVER_SHOW_FIELDS` decision — even if the decision is
+"intentionally empty" — must be treated by reviewers as incomplete. Add
+this as an explicit step in "Adding a new connector type" below.
 
 The `validation/validation_runner.py` module is the only place that
 instantiates connectors, using a dispatch dictionary by `type` (similar to
@@ -193,6 +222,10 @@ detect this and guide the user to exactly which extra to install (e.g.
 1. Create `src/thomas/connectors/<new_type>.py`, implementing
    `BaseConnector`.
 2. Register it in the connector dispatch dictionary.
-3. Add the corresponding extra in `pyproject.toml`.
-4. Document the `validation` format specific to this type in this file.
-5. Add a fictional example under `examples/scenarios/`.
+3. Decide `NEVER_SHOW_FIELDS` for every config field the new type accepts,
+   and override `describe_query` if the default fallback isn't meaningful
+   for this connector's query/operation model (see the developer-
+   consultation directive above).
+4. Add the corresponding extra in `pyproject.toml`.
+5. Document the `validation` format specific to this type in this file.
+6. Add a fictional example under `examples/scenarios/`.

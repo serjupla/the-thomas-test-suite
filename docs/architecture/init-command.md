@@ -35,7 +35,8 @@ thomas init [DESTINATION] [--force]
 │   ├── config/
 │   │   ├── environments/
 │   │   │   └── example.json       (points to a real public API, jsonplaceholder.typicode.com)
-│   │   └── variables.example.json
+│   │   ├── variables.example.json
+│   │   └── company-logo.svg       (placeholder logo, referenced by example.json's company_logo_path)
 │   └── scenarios/
 │       └── quickstart/
 │           ├── 01_read_existing_post.json
@@ -201,7 +202,8 @@ ls -la /tmp/test-project/
 cd /tmp/test-project
 thomas request --environment examples/config/environments/example.json \
                 --folder examples/scenarios \
-                --variables examples/config/variables.example.json
+                --variables examples/config/variables.example.json \
+                --title "Thomas Quickstart"
 
 # Test idempotency
 thomas init /tmp/test-project  # Should succeed, all skipped

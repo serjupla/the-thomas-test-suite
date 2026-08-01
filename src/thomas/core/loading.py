@@ -144,6 +144,36 @@ def load_environment(file_path: Path) -> dict:
     return load_and_validate(file_path, "environment_v1.json")
 
 
+def resolve_environment_path(environment_name: str, project_root: Path) -> Path:
+    """Find the single `config/environments/*.json` file whose `environment_name` matches.
+
+    Used to auto-resolve `--environment` from an execution record's recorded
+    environment name when the flag is omitted on `validate`/`report`. Raises
+    ThomasFileError if zero or more than one file matches.
+    """
+    environments_dir = project_root / "config" / "environments"
+    candidates = sorted(environments_dir.glob("*.json")) if environments_dir.is_dir() else []
+
+    matches: list[Path] = []
+    for candidate in candidates:
+        try:
+            document = load_and_validate(candidate, "environment_v1.json")
+        except ThomasFileError:
+            continue
+        if document.get("environment_name") == environment_name:
+            matches.append(candidate)
+
+    if len(matches) == 1:
+        return matches[0]
+
+    message = (
+        f"could not auto-resolve environment {environment_name!r} from "
+        f"{environments_dir} ({len(matches)} matching file(s) found); "
+        "pass --environment explicitly"
+    )
+    raise ThomasFileError([(environment_name, message)])
+
+
 def load_variables(file_path: Path) -> dict[str, Any]:
     document = load_and_validate(file_path, "variables_v1.json")
     return document["variables"]

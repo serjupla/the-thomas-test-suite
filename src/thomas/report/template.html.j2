@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ strings.report_title }}</title>
+<title>The Thomas Test Report</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@400;600&display=swap');
   :root {
@@ -164,6 +164,13 @@
   .topbar-heading { display: flex; align-items: center; gap: var(--space-2); }
   .topbar-brand-link { display: flex; align-items: center; gap: var(--space-3); text-decoration: none; }
   .topbar-brand-icon svg { width: 20px; height: 20px; display: block; overflow: hidden; }
+  .topbar-brand-icon-dark { display: none; }
+  :root[data-theme="dark"] .topbar-brand-icon-light { display: none; }
+  :root[data-theme="dark"] .topbar-brand-icon-dark { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .topbar-brand-icon-light { display: none; }
+    :root:not([data-theme="light"]) .topbar-brand-icon-dark { display: block; }
+  }
   .topbar-brand-name { font-weight: var(--weight-bold); letter-spacing: 0.03em; color: var(--color-accent); }
   .topbar-title { color: var(--color-text); }
   .icon-btn {
@@ -206,6 +213,24 @@
     padding: 0 var(--space-6);
   }
   .banner-left { display: flex; align-items: center; gap: var(--space-4); }
+  .report-title-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: calc((var(--space-3) + var(--space-6)) * 0.4) var(--space-6) calc(var(--space-1) * 0.4);
+    font-size: var(--size-h4);
+    font-weight: var(--weight-bold);
+    color: var(--color-text);
+  }
+  .report-generated-at {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--space-6) calc(var(--space-3) * 0.4);
+    font-size: var(--size-label);
+    color: var(--color-text-muted);
+  }
+  .report-banner + .report-generated-at {
+    padding-top: calc((var(--space-3) + var(--space-6)) * 0.4);
+  }
   .company-logo {
     display: flex;
     align-items: center;
@@ -616,6 +641,17 @@
   details.round-row > summary::-webkit-details-marker { display: none; }
   .round-detail { padding: var(--space-2); }
   .no-value { color: var(--color-text-muted); }
+  .scenario-description { color: var(--color-text-muted); white-space: pre-wrap; margin: 0 0 var(--space-3) 0; }
+  .query-cell { max-width: 260px; }
+  .query-text-wrap {
+    display: inline-block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    font-family: monospace;
+  }
 
   /* Environment view */
   .env-block {
@@ -655,15 +691,15 @@
     background: transparent;
     border: none;
     padding: 0;
-    color: var(--color-text-muted);
+    color: var(--color-accent);
     display: inline-flex;
     align-items: center;
     vertical-align: middle;
   }
-  .reveal-btn:hover { color: var(--color-text); }
   .reveal-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
   .reveal-btn svg { width: 16px; height: 16px; display: block; }
   .reveal-btn .icon-eye-off { display: none; }
+  .not-displayed-badge { color: var(--color-text-muted); font-style: italic; font-size: var(--size-caption); }
   .env-signature-block { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
   .env-signature-block h3 { margin: 0; }
   .signature-value { font-size: var(--size-caption); color: var(--color-text-muted); }
@@ -672,6 +708,7 @@
   .timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
   .timeline-header h3 { margin: 0; }
   .gantt-view.hidden, .log-view.hidden { display: none; }
+  .gantt-view { --gantt-inset: 16px; }
   .gantt-ruler { display: flex; align-items: center; gap: var(--space-3); padding-bottom: var(--space-2); }
   .gantt-ruler-spacer { width: 160px; flex: none; }
   .gantt-ruler-spacer:last-child { width: 22px; }
@@ -686,6 +723,9 @@
   .gantt-marker { position: absolute; top: -2px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-neutral-500); transform: translateX(-50%); }
   .gantt-marker-validation.status-aprovado-marker { background: var(--color-status-approved); }
   .gantt-marker-validation.status-reprovado-marker { background: var(--color-status-failed); }
+  .gantt-marker-service { border-radius: 2px; transform: translateX(-50%) rotate(45deg); background: var(--color-accent-2, var(--color-accent)); }
+  .gantt-marker-service.status-aprovado-marker { background: var(--color-status-approved); }
+  .gantt-marker-service.status-reprovado-marker { background: var(--color-status-failed); }
   .gantt-badge { width: 22px; height: 22px; border-radius: var(--radius-sm); flex: none; text-align: center; line-height: 22px; }
   .timeline-local-log { background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-md); padding: var(--space-3); margin: var(--space-2) 0 var(--space-3) 172px; font-size: var(--size-caption); }
   .timeline-local-log.hidden { display: none; }
@@ -701,7 +741,16 @@
   .latency-plot { position: relative; flex: 1; height: 260px; background: var(--color-bg); border: 1px solid var(--color-divider); border-radius: var(--radius-md); overflow: hidden; }
   .latency-chart { position: absolute; inset: 0; width: 100%; height: 100%; }
   .latency-gridline { stroke: var(--color-divider); stroke-width: 1; }
-  .latency-point { stroke: var(--color-bg); stroke-width: 0.5; }
+  .latency-points-overlay { position: absolute; top: 10px; right: 10px; bottom: 10px; left: 10px; }
+  .latency-point {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid var(--color-bg);
+    box-sizing: border-box;
+  }
   .latency-x-axis-row { display: flex; margin-top: var(--space-2); }
   .latency-x-axis-spacer { width: 44px; flex: none; }
   .latency-x-axis-track { position: relative; flex: 1; height: 1.2em; }
@@ -729,7 +778,8 @@
   <div class="topbar-inner">
     <div class="topbar-heading">
       <a class="topbar-brand-link" href="https://github.com/serjupla/the-thomas-test-suite" target="_blank" rel="noopener">
-        <span class="topbar-brand-icon">{{ thomas_logo_svg|safe }}</span>
+        <span class="topbar-brand-icon topbar-brand-icon-light">{{ thomas_icon_svg|safe }}</span>
+        <span class="topbar-brand-icon topbar-brand-icon-dark">{{ thomas_icon_dark_svg|safe }}</span>
         <span class="topbar-brand-name">THE THOMAS Test Suite</span>
       </a>
       <span class="topbar-title">- {{ strings.report_title }}</span>
@@ -749,7 +799,7 @@
       <div class="banner-company">{{ header.company_name or header.system_name }}</div>
       <div class="banner-meta">
         {% if header.department_name %}{{ header.department_name }} &middot; {% endif %}
-        {{ header.system_name }} &middot; {{ strings.banner_generated_at_prefix }} {{ header.generated_at }}
+        {{ header.system_name }}
       </div>
     </div>
   </div>
@@ -761,15 +811,21 @@
   </div>
 </div>
 
+{% if report_title.text %}
+<div class="report-title-section">{{ report_title.text }}</div>
+{% endif %}
+<div class="report-generated-at">{{ strings.banner_generated_at_prefix }} {{ header.generated_at }}</div>
+
 <div class="container">
 
 {% macro checks_table_api(checks) %}
 <table class="kv-table">
-  <thead><tr><th>{{ strings.col_id }}</th><th>{{ strings.col_operator }}</th><th>{{ strings.col_expected }}</th><th>{{ strings.col_obtained }}</th><th>{{ strings.col_result }}</th></tr></thead>
+  <thead><tr><th>{{ strings.col_id }}</th><th>{{ strings.col_field }}</th><th>{{ strings.col_operator }}</th><th>{{ strings.col_expected }}</th><th>{{ strings.col_obtained }}</th><th>{{ strings.col_result }}</th></tr></thead>
   <tbody>
     {% for check in checks %}
     <tr class="{{ 'row-failed' if not check.passed else '' }}">
       <td>{{ check.id }}</td>
+      <td>{{ check.field }}</td>
       <td>{{ check.operator }}</td>
       <td>{{ check.expected }}</td>
       <td>{{ check.obtained }}</td>
@@ -780,17 +836,36 @@
 </table>
 {% endmacro %}
 
-{% macro checks_table_validation(checks) %}
+{% macro checks_table_validation(checks, row_uid) %}
 <table class="kv-table">
-  <thead><tr><th>{{ strings.col_id }}</th><th>{{ strings.col_connector }}</th><th>{{ strings.col_operator }}</th><th>{{ strings.col_expected }}</th><th>{{ strings.col_obtained }}</th><th>{{ strings.col_result }}</th></tr></thead>
+  <thead><tr><th>{{ strings.col_id }}</th><th>{{ strings.col_connector }}</th><th>{{ strings.col_field }}</th><th>{{ strings.col_operator }}</th><th>{{ strings.col_expected }}</th><th>{{ strings.col_obtained }}</th><th>{{ strings.col_query }}</th><th>{{ strings.col_result }}</th></tr></thead>
   <tbody>
     {% for check in checks %}
     <tr class="{{ 'row-failed' if check.outcome != 'passed' else '' }}">
       <td>{{ check.id }}</td>
       <td>{{ check.connector }}</td>
+      <td>{{ check.field }}</td>
       <td>{{ check.operator }}</td>
       <td>{{ check.expected }}</td>
       <td>{{ check.obtained }}</td>
+      <td class="query-cell">
+        {% if check.query_display is none %}
+        {{ strings.no_value_placeholder }}
+        {% elif check.query_visibility == "never_show" %}
+        <span class="not-displayed-badge">{{ strings.not_displayed_label }}</span>
+        {% elif check.query_visibility == "sensitive" %}
+        <div class="sensitive-value">
+          <span class="mask-value" data-real-value="{{ check.query_display }}" data-masked-value="{{ strings.no_value_placeholder if not check.query_display else '•' * 10 }}" data-empty-placeholder="{{ strings.no_value_placeholder }}">{{ '•' * 10 if check.query_display else strings.no_value_placeholder }}</span>
+          <button type="button" class="reveal-btn" data-label-show="{{ strings.reveal_label }}" data-label-hide="{{ strings.hide_label }}" aria-label="{{ strings.reveal_label }}" title="{{ strings.reveal_label }}">
+            <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-7-11-7a17.7 17.7 0 0 1 4.22-5.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a17.7 17.7 0 0 1-2.16 3.19"/><path d="M10.58 10.58a2 2 0 1 0 2.83 2.83"/><path d="M1 1l22 22"/></svg>
+          </button>
+        </div>
+        {% else %}
+        <span class="query-text-wrap" id="query-{{ row_uid }}-{{ check.id }}" title="{{ check.query_display }}">{{ check.query_display }}</span>
+        {{ copy_button("query-" ~ row_uid ~ "-" ~ check.id) }}
+        {% endif %}
+      </td>
       <td>
         <span class="outcome-pill {{ check.outcome }}">
           {%- if check.outcome == "passed" -%}{{ strings.result_passed }}
@@ -821,6 +896,9 @@
     <span class="chevron">▸</span>
   </button>
   <div class="scenario-detail-panel" id="detail-{{ uid }}" hidden>
+    {% if scenario.detail.description %}
+    <p class="scenario-description">{{ scenario.detail.description }}</p>
+    {% endif %}
     <details class="detail-section">
       <summary>{{ strings.section_requisicao }} <span class="detail-section-meta">{{ scenario.detail.requisicao.method }} {{ scenario.detail.requisicao.path }}</span></summary>
       <div class="detail-section-body">
@@ -887,10 +965,10 @@
         {% for round in scenario.detail.validacao.rounds %}
         <details class="round-row" {% if loop.last %}open{% endif %}>
           <summary>
-            <span>{{ strings.round_label_format.format(index=loop.index) }} — {{ round.timestamp }}</span>
+            <span>{{ strings.round_label_format.format(index=loop.index) }} — {{ round.timestamp_label }}</span>
             {{ status_icon(round.status) }}
           </summary>
-          <div class="round-detail">{{ checks_table_validation(round.checks) }}</div>
+          <div class="round-detail">{{ checks_table_validation(round.checks, uid ~ "-r" ~ loop.index) }}</div>
         </details>
         {% endfor %}
         {% endif %}
@@ -1096,6 +1174,7 @@
         {% endif %}
       </summary>
       <div class="env-subrow-body">
+        {% if service.info_url %}<div class="detail-meta-row">{{ strings.env_field_info_url }}: {{ service.info_url }}</div>{% endif %}
         <div class="detail-meta-row">{{ strings.env_field_collected_at }}: {{ service.collected_at }}</div>
         {% if service.status == "ok" %}
         <table class="kv-table"><tbody>
@@ -1125,7 +1204,9 @@
           <tr>
             <td>{{ row.key }}</td>
             <td>
-              {% if row.is_sensitive %}
+              {% if row.is_never_show %}
+              <span class="not-displayed-badge">{{ strings.not_displayed_label }}</span>
+              {% elif row.is_sensitive %}
               <div class="sensitive-value">
                 <span class="mask-value" data-real-value="{{ row.value }}" data-masked-value="{{ row.value_masked }}" data-empty-placeholder="{{ strings.no_value_placeholder }}">{{ row.value_masked }}</span>
                 <button type="button" class="reveal-btn" data-label-show="{{ strings.reveal_label }}" data-label-hide="{{ strings.hide_label }}" aria-label="{{ strings.reveal_label }}" title="{{ strings.reveal_label }}">
@@ -1201,17 +1282,28 @@
         <span class="gantt-ruler-spacer"></span>
         <div class="gantt-ruler-track">
           {% for tick in timeline_view.gantt.ticks %}
-          <span class="gantt-ruler-tick" style="left: {{ tick.position }}%">{{ tick.label }}</span>
+          <span class="gantt-ruler-tick" style="left: calc(var(--gantt-inset) + (100% - 2 * var(--gantt-inset)) * {{ tick.position / 100 }})">{{ tick.label }}</span>
           {% endfor %}
         </div>
         <span class="gantt-ruler-spacer"></span>
       </div>
       {% for row in timeline_view.gantt.rows %}
+      {% if row.is_services_row %}
+      <div class="gantt-row">
+        <span class="gantt-row-label">{{ strings.timeline_services_row_label }}</span>
+        <div class="gantt-track">
+          {% for marker in row.markers %}
+          <span class="gantt-marker gantt-marker-service status-{{ marker.outcome }}-marker" style="left: calc(var(--gantt-inset) + (100% - 2 * var(--gantt-inset)) * {{ marker.position / 100 }})" title="{{ strings.timeline_event_service }}: {{ marker.service_name }} &mdash; {{ marker.timestamp_label }}"></span>
+          {% endfor %}
+        </div>
+        <span class="gantt-badge"></span>
+      </div>
+      {% else %}
       <div class="gantt-row">
         <button type="button" class="gantt-row-label" data-timeline-toggle="{{ row.scenario_id }}">{{ row.scenario_id }}</button>
         <div class="gantt-track">
           {% for marker in row.markers %}
-          <span class="gantt-marker gantt-marker-{{ marker.type }}{% if marker.type == 'validation' %} status-{{ marker.outcome }}-marker{% endif %}" style="left: {{ marker.position }}%" title="{% if marker.type == 'request' %}{{ strings.timeline_event_request }}{% elif marker.type == 'response' %}{{ strings.timeline_event_response }}{% else %}{{ strings.timeline_event_round }} {{ marker.round_index + 1 }} ({{ marker.outcome }}){% endif %} &mdash; {{ marker.timestamp_label }}"></span>
+          <span class="gantt-marker gantt-marker-{{ marker.type }}{% if marker.type == 'validation' %} status-{{ marker.outcome }}-marker{% endif %}" style="left: calc(var(--gantt-inset) + (100% - 2 * var(--gantt-inset)) * {{ marker.position / 100 }})" title="{% if marker.type == 'request' %}{{ strings.timeline_event_request }}{% elif marker.type == 'response' %}{{ strings.timeline_event_response }}{% else %}{{ strings.timeline_event_round }} {{ marker.round_index + 1 }} ({{ marker.outcome }}){% endif %} &mdash; {{ marker.timestamp_label }}"></span>
           {% endfor %}
         </div>
         {{ status_icon(row.status_pt, "gantt-badge") }}
@@ -1229,6 +1321,7 @@
         </div>
         {% endfor %}
       </div>
+      {% endif %}
       {% endfor %}
     </div>
     <div class="log-view hidden" data-viz-view="log">
@@ -1271,10 +1364,12 @@
               {% for tick in timeline_view.latency.y_ticks %}
               <line class="latency-gridline" x1="0" x2="100" y1="{{ tick.position }}" y2="{{ tick.position }}" vector-effect="non-scaling-stroke"></line>
               {% endfor %}
-              {% for point in timeline_view.latency.points %}
-              <circle class="latency-point" cx="{{ (0.8 + point.x_percent / 100 * 98.4)|round(4) }}" cy="{{ (0.8 + point.y_percent / 100 * 98.4)|round(4) }}" r="1.5" style="fill: var({{ point.color_var }});"><title>{{ point.path }} — {{ '%.0f'|format(point.latency_ms) }}ms</title></circle>
-              {% endfor %}
             </svg>
+            <div class="latency-points-overlay">
+              {% for point in timeline_view.latency.points %}
+              <span class="latency-point" style="left: {{ point.x_percent }}%; top: {{ point.y_percent }}%; background: var({{ point.color_var }});" title="{{ point.path }} — {{ '%.0f'|format(point.latency_ms) }}ms"></span>
+              {% endfor %}
+            </div>
           </div>
         </div>
         <div class="latency-x-axis-row">

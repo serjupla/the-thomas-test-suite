@@ -14,6 +14,8 @@ _logger = logging.getLogger("thomas.connectors.oracle")
 
 
 class OracleConnector(BaseConnector):
+    NEVER_SHOW_FIELDS = frozenset({"password"})
+
     def __init__(self, config: dict):
         super().__init__(config)
         try:
@@ -56,6 +58,9 @@ class OracleConnector(BaseConnector):
 
         row_map = {column.lower(): value for column, value in zip(columns, rows[0])}
         return row_map[validation["field"].lower()]
+
+    def describe_query(self, validation: dict) -> str:
+        return validation["query"]
 
     def disconnect(self) -> None:
         if self._connection is None:

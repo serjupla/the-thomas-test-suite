@@ -75,6 +75,7 @@ def scaffold_project(destination: Path | None = None, force: bool = False) -> Sc
         # Example files
         ("examples/config/environments/example.json", "examples/config/environments/example.json", False, False),
         ("examples/config/variables.example.json", "examples/config/variables.example.json", False, False),
+        ("examples/config/company-logo.svg", "examples/config/company-logo.svg", False, False),
         ("examples/scenarios/quickstart/01_read_existing_post.json", "examples/scenarios/quickstart/01_read_existing_post.json", False, False),
         ("examples/scenarios/quickstart/02_create_new_post.json", "examples/scenarios/quickstart/02_create_new_post.json", False, False),
         ("examples/scenarios/quickstart/03_create_and_confirm_order.json", "examples/scenarios/quickstart/03_create_and_confirm_order.json", False, False),

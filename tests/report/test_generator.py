@@ -2,6 +2,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 from bs4 import BeautifulSoup
@@ -9,6 +10,7 @@ from bs4 import BeautifulSoup
 from thomas.core.loading import ThomasFileError
 from thomas.report.generator import (
     _build_groups,
+    _build_validation_rounds,
     _donut_gradient_stops,
     _duration_display,
     _flatten_kv,
@@ -166,7 +168,11 @@ def test_build_groups_sums_to_total_and_preserves_first_seen_order():
         ("API_KEY", True),
         ("password", True),
         ("secret_value", True),
-        ("username", False),
+        ("username", True),
+        ("user", True),
+        ("usuário", True),
+        ("USUÁRIO", True),
+        ("usuario", True),
         ("host", False),
     ],
 )
@@ -189,6 +195,137 @@ def test_flatten_kv_handles_lists():
     rows = {row["key"]: row for row in _flatten_kv(config)}
     assert rows["scopes[0]"]["value"] == "read"
     assert rows["scopes[1]"]["value"] == "write"
+
+
+def test_flatten_kv_never_show_field_never_carries_real_value():
+    config = {"dsn": "host:1521/xe", "password": "s3cr3t"}
+    rows = {row["key"]: row for row in _flatten_kv(config, never_show_fields=frozenset({"password"}))}
+    assert rows["password"]["is_never_show"] is True
+    assert rows["password"]["value"] is None
+    assert rows["password"]["value_masked"] is None
+    assert rows["dsn"]["is_never_show"] is False
+    assert rows["dsn"]["value"] == "host:1521/xe"
+
+
+def test_flatten_kv_never_show_takes_precedence_over_sensitive_match():
+    config = {"password": "s3cr3t"}
+    rows = {row["key"]: row for row in _flatten_kv(config, never_show_fields=frozenset({"password"}))}
+    assert rows["password"]["is_sensitive"] is True
+    assert rows["password"]["is_never_show"] is True
+    assert rows["password"]["value"] is None
+
+
+# --- validation rounds: field/query columns + tz timestamp (FR-001/FR-002/FR-003/FR-006a) ---
+
+CONNECTORS = {
+    "oracle_main": {"type": "oracle", "dsn": "host:1521/xe", "username": "svc", "password": "s3cr3t"},
+    "fake_main": {"type": "fake", "values": {}, "failures": {}},
+}
+
+
+def _validation_round(timestamp, results):
+    return {"timestamp": timestamp, "environment_used": "dev", "results": results}
+
+
+def test_build_validation_rounds_visible_field_carries_query_and_tz_timestamp():
+    rounds = _build_validation_rounds(
+        [_validation_round(
+            "2026-07-25T13:00:00+00:00",
+            [{"id": "v1", "connector": "oracle_main", "field": "status", "expected": "SETTLED",
+              "obtained": "SETTLED", "operator": "equals", "query": "SELECT status FROM t", "passed": True}],
+        )],
+        CONNECTORS,
+        ZoneInfo("America/Sao_Paulo"),
+    )
+    check = rounds[0]["checks"][0]
+    assert check["field"] == "status"
+    assert check["query_display"] == "SELECT status FROM t"
+    assert check["query_visibility"] == "visible"
+    assert "10:00:00" in rounds[0]["timestamp_label"]
+
+
+def test_build_validation_rounds_never_show_field_suppresses_query_visibility():
+    rounds = _build_validation_rounds(
+        [_validation_round(
+            "2026-07-25T13:00:00+00:00",
+            [{"id": "v1", "connector": "oracle_main", "field": "password", "expected": "x",
+              "obtained": "x", "operator": "equals", "query": "SELECT password FROM t", "passed": True}],
+        )],
+        CONNECTORS,
+        ZoneInfo("America/Sao_Paulo"),
+    )
+    assert rounds[0]["checks"][0]["query_visibility"] == "never_show"
+
+
+def test_build_validation_rounds_sensitive_field_masks_query_visibility():
+    rounds = _build_validation_rounds(
+        [_validation_round(
+            "2026-07-25T13:00:00+00:00",
+            [{"id": "v1", "connector": "oracle_main", "field": "username", "expected": "x",
+              "obtained": "x", "operator": "equals", "query": "SELECT username FROM t", "passed": True}],
+        )],
+        CONNECTORS,
+        ZoneInfo("America/Sao_Paulo"),
+    )
+    assert rounds[0]["checks"][0]["query_visibility"] == "sensitive"
+
+
+def test_build_validation_rounds_fake_connector_lookup_label_is_visible():
+    rounds = _build_validation_rounds(
+        [_validation_round(
+            "2026-07-25T13:00:00+00:00",
+            [{"id": "v1", "connector": "fake_main", "field": "balance", "expected": 1,
+              "obtained": 1, "operator": "equals", "query": "lookup: v1", "passed": True}],
+        )],
+        CONNECTORS,
+        ZoneInfo("America/Sao_Paulo"),
+    )
+    check = rounds[0]["checks"][0]
+    assert check["query_display"] == "lookup: v1"
+    assert check["query_visibility"] == "visible"
+
+
+def test_build_validation_rounds_missing_query_on_older_records_is_none():
+    rounds = _build_validation_rounds(
+        [_validation_round(
+            "2026-07-25T13:00:00+00:00",
+            [{"id": "v1", "connector": "fake_main", "expected": 1, "obtained": 1, "operator": "equals", "passed": True}],
+        )],
+        CONNECTORS,
+        ZoneInfo("America/Sao_Paulo"),
+    )
+    assert rounds[0]["checks"][0]["query_display"] is None
+    assert rounds[0]["checks"][0]["field"] == ""
+
+
+def test_rendered_html_never_shows_oracle_password_in_query_column():
+    validation_rounds = [_validation_round(
+        "2026-07-25T13:00:00+00:00",
+        [{"id": "v1", "connector": "oracle_main", "field": "password", "expected": "s3cr3t",
+          "obtained": "s3cr3t", "operator": "equals", "query": "SELECT password FROM t WHERE id = 's3cr3t'", "passed": True}],
+    )]
+    result = _scenario("sc1", "", "feat", "passed", validation_rounds=validation_rounds)
+    record = _execution_record([result])
+    environment = dict(ENVIRONMENT, connectors=CONNECTORS)
+    html = generate_report_html(record, environment, b"{}")
+    assert "SELECT password FROM t" not in html
+    soup = BeautifulSoup(html, "html.parser")
+    assert soup.select_one(".query-cell .not-displayed-badge") is not None
+
+
+def test_rendered_html_shows_scenario_description_when_present():
+    result = dict(_scenario("sc1", "", "feat", "passed"), description="A valid transfer must be settled")
+    record = _execution_record([result])
+    html = generate_report_html(record, ENVIRONMENT, b"{}")
+    assert "A valid transfer must be settled" in html
+
+
+def test_rendered_html_omits_description_block_when_absent():
+    result = _scenario("sc1", "", "feat", "passed")
+    record = _execution_record([result])
+    html = generate_report_html(record, ENVIRONMENT, b"{}")
+    soup = BeautifulSoup(html, "html.parser")
+    assert soup.select_one(".scenario-description") is None
 
 
 # --- duration display (FR-010) ---
@@ -294,6 +431,38 @@ def test_environment_without_report_language_defaults_to_english():
     assert "Test Report" in html
 
 
+def test_report_title_section_rendered_when_present():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results, title="Release 4.2 — Regression Pass")
+    html = generate_report_html(record, ENVIRONMENT, b"{}")
+    soup = BeautifulSoup(html, "html.parser")
+    section = soup.select_one(".report-title-section")
+    assert section is not None
+    assert "Release 4.2" in section.get_text()
+
+
+def test_report_title_section_omitted_when_absent():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results)
+    html = generate_report_html(record, ENVIRONMENT, b"{}")
+    soup = BeautifulSoup(html, "html.parser")
+    assert soup.select_one(".report-title-section") is None
+
+
+def test_header_uses_new_icon_assets_and_generated_wording():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results)
+    html = generate_report_html(record, ENVIRONMENT, b"{}")
+    soup = BeautifulSoup(html, "html.parser")
+    assert soup.select_one(".topbar-brand-icon-light") is not None
+    assert soup.select_one(".topbar-brand-icon-dark") is not None
+    assert "Generated on" in html
+
+    environment_pt = dict(ENVIRONMENT, report_language="pt")
+    html_pt = generate_report_html(record, environment_pt, b"{}")
+    assert "Gerado em" in html_pt
+
+
 def test_edge_case_zero_scenarios_no_donut_division_by_zero_no_crash():
     record = _execution_record([])
     html = generate_report_html(record, ENVIRONMENT, b"{}")
@@ -313,6 +482,62 @@ def test_edge_case_request_technical_error_distinct_from_assertion_failure():
     assert "connection refused" in html
 
 
+def test_oracle_connector_password_never_appears_in_rendered_html():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results)
+    environment = dict(
+        ENVIRONMENT,
+        connectors={
+            "oracle_main": {
+                "type": "oracle",
+                "dsn": "host:1521/xe",
+                "username": "svc_user",
+                "password": "s3cr3t-value",
+            }
+        },
+    )
+    html = generate_report_html(record, environment, b"{}")
+    assert "s3cr3t-value" not in html
+    soup = BeautifulSoup(html, "html.parser")
+    assert soup.select_one(".not-displayed-badge") is not None
+    # username is sensitive (FR-016) but still maskable/revealable, not never-show
+    assert 'data-real-value="svc_user"' in html
+
+
+def test_gantt_services_row_renders_one_marker_per_collection_event():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(
+        results,
+        services_info=[
+            {"name": "billing-service", "collected_at": "2026-07-25T10:00:00-03:00", "status_code": 200, "error": None, "data": {}},
+            {"name": "fraud-service", "collected_at": "2026-07-25T10:00:05-03:00", "status_code": 200, "error": None, "data": {}},
+        ],
+    )
+    html = generate_report_html(record, ENVIRONMENT, b"{}")
+    soup = BeautifulSoup(html, "html.parser")
+    service_markers = soup.select(".gantt-marker-service")
+    assert len(service_markers) == 2
+    # distinct from the per-scenario request/response/validation markers
+    assert soup.select_one(".gantt-marker-request") is not None
+
+
+def test_gantt_omits_services_row_when_no_services_info():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results)
+    html = generate_report_html(record, ENVIRONMENT, b"{}")
+    soup = BeautifulSoup(html, "html.parser")
+    assert soup.select_one(".gantt-marker-service") is None
+
+
+def test_latency_points_render_as_non_circular_markers():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results)
+    html = generate_report_html(record, ENVIRONMENT, b"{}")
+    soup = BeautifulSoup(html, "html.parser")
+    assert soup.select_one("circle.latency-point") is None
+    assert soup.select_one("span.latency-point") is not None
+
+
 def test_edge_case_single_timestamp_gantt_markers_render_without_divide_by_zero():
     ts = "2026-07-25T10:00:00-03:00"
     results = [_scenario("a", "", "f", "passed", request_timestamp=ts, response_timestamp=ts)]
@@ -322,4 +547,4 @@ def test_edge_case_single_timestamp_gantt_markers_render_without_divide_by_zero(
     soup = BeautifulSoup(html, "html.parser")
     marker = soup.select_one(".gantt-marker")
     assert marker is not None
-    assert "left: 50" in marker["style"]
+    assert "* 0.5)" in marker["style"]

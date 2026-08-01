@@ -2,7 +2,7 @@ import json
 
 from bs4 import BeautifulSoup
 
-from thomas.cli import main
+from thomas.cli import BANNER, main
 
 ENVIRONMENT = {
     "schema_version": 1,
@@ -87,7 +87,14 @@ def _build_execution_record(prepared_variables=None, services_info=None):
             "instant_transfer",
             "passed",
             api_checks_result=[
-                {"id": "http_status", "expected": 201, "obtained": 201, "operator": "equals", "passed": True}
+                {
+                    "id": "http_status",
+                    "field": "status_code",
+                    "expected": 201,
+                    "obtained": 201,
+                    "operator": "equals",
+                    "passed": True,
+                }
             ],
         ),
         _scenario_result("valid_amount_transfer", "billing", "instant_transfer", "failed"),
@@ -131,6 +138,7 @@ def _build_execution_record(prepared_variables=None, services_info=None):
         "services_info": services_info if services_info is not None else [
             {
                 "name": "billing-service",
+                "info_url": "https://svc.test/info",
                 "collected_at": "2026-07-25T09:59:00-03:00",
                 "status_code": 200,
                 "error": None,
@@ -317,10 +325,10 @@ def test_environment_services_info_block_present_when_configured_absent_when_not
 def test_environment_connectors_masked_by_default_and_block_omitted_when_absent(tmp_path):
     html_with = _run_report(tmp_path, ENVIRONMENT, subdir="us2_connectors_with")
     soup = BeautifulSoup(html_with, "html.parser")
-    mask_span = soup.select_one(".mask-value")
-    assert mask_span is not None
-    assert mask_span.get_text(strip=True) == "•" * 10
-    assert mask_span["data-real-value"] == "s3cr3t-conn"
+    # Oracle's `password` field is on NEVER_SHOW_FIELDS (spec 013 FR-013): it never
+    # appears in the HTML source, in any state — not even as a masked data-real-value.
+    assert "s3cr3t-conn" not in html_with
+    assert soup.select_one(".not-displayed-badge") is not None
 
     html_without = _run_report(tmp_path, ENVIRONMENT_MINIMAL, subdir="us2_connectors_without")
     soup_without = BeautifulSoup(html_without, "html.parser")
@@ -365,7 +373,8 @@ def test_timeline_gantt_default_visualization_markers_and_badges(tmp_path):
     assert "hidden" in log_view.get("class", [])
 
     rows = gantt_view.select(".gantt-row")
-    assert len(rows) == 5
+    assert len(rows) == 6  # 5 scenario rows + 1 information-services row (spec 013 US4)
+    assert gantt_view.select_one(".gantt-marker-service") is not None
     kyc_row = None
     for row in rows:
         if row.select_one(".gantt-row-label").get_text(strip=True) == "kyc_document_check":
@@ -401,7 +410,7 @@ def test_timeline_latency_stats_and_scatter_plot_with_legend(tmp_path):
     stats = soup.select_one(".latency-stats")
     assert stats is not None
     assert "ms" in stats.get_text()
-    points = soup.select(".latency-chart circle")
+    points = soup.select("span.latency-point")  # non-circular marker (spec 013 US4)
     assert len(points) == 4  # excludes the technical-error scenario
     legend_items = soup.select(".latency-legend .legend-item")
     assert len(legend_items) >= 1
@@ -416,6 +425,166 @@ def test_timeline_edge_case_single_timestamp_no_divide_by_zero(tmp_path):
             result["response_timestamp"] = same_ts
     html = _run_report(tmp_path, ENVIRONMENT, subdir="us3_same_instant", execution_record=record)
     assert "NaN" not in html
+
+
+# --- Star invitation (spec 012, US4) ---
+
+
+def _run_report_with_random(tmp_path, monkeypatch, forced_random_value, subdir):
+    import thomas.cli as cli_module
+
+    workdir = tmp_path / subdir
+    workdir.mkdir()
+    env_path = workdir / "dev.json"
+    write_json(env_path, ENVIRONMENT)
+    exec_path = workdir / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+    output_dir = workdir / "reports"
+
+    monkeypatch.setattr(cli_module.random, "random", lambda: forced_random_value)
+
+    exit_code = main([
+        "report",
+        "--execution", str(exec_path),
+        "--environment", str(env_path),
+        "--output", str(output_dir),
+    ])
+    return exit_code
+
+
+def test_report_shows_star_invitation_when_random_draw_is_below_threshold(tmp_path, monkeypatch, capsys):
+    exit_code = _run_report_with_random(tmp_path, monkeypatch, 0.1, "star_shown")
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Star us on GitHub" in captured.out
+    assert "https://github.com/serjupla/the-thomas-test-suite" in captured.out
+
+
+def test_report_omits_star_invitation_when_random_draw_is_above_threshold(tmp_path, monkeypatch, capsys):
+    exit_code = _run_report_with_random(tmp_path, monkeypatch, 0.9, "star_hidden")
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Star us on GitHub" not in captured.out
+
+
+def test_report_never_shows_star_invitation_on_failure(tmp_path, monkeypatch, capsys):
+    import thomas.cli as cli_module
+
+    monkeypatch.setattr(cli_module.random, "random", lambda: 0.0)
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, {**EXECUTION_RECORD, "schema_version": 999})  # invalid -> load_and_validate fails
+
+    exit_code = main([
+        "report",
+        "--execution", str(exec_path),
+        "--environment", str(tmp_path / "does_not_exist.json"),
+        "--output", str(tmp_path / "reports"),
+    ])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Star us on GitHub" not in captured.out
+
+
+# --- Banner and --help/--version banner-free (spec 012, US3) ---
+
+
+def test_report_prints_banner_before_any_other_output(tmp_path, capsys):
+    workdir = tmp_path / "banner_check"
+    workdir.mkdir()
+    env_path = workdir / "dev.json"
+    write_json(env_path, ENVIRONMENT)
+    exec_path = workdir / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+    output_dir = workdir / "reports"
+
+    main([
+        "report",
+        "--execution", str(exec_path),
+        "--environment", str(env_path),
+        "--output", str(output_dir),
+    ])
+
+    captured = capsys.readouterr()
+    banner_first_line = BANNER.strip().splitlines()[0]
+    assert captured.out.startswith(banner_first_line)
+
+
+def test_report_help_and_top_level_version_do_not_print_banner(capsys):
+    try:
+        main(["report", "--help"])
+    except SystemExit:
+        pass
+    try:
+        main(["--help"])
+    except SystemExit:
+        pass
+    main(["--version"])
+
+    captured = capsys.readouterr()
+    banner_first_line = BANNER.strip().splitlines()[0]
+    assert banner_first_line not in captured.out
+
+
+# --- Auto-resolved --environment (spec 012, US2) ---
+
+
+def test_report_auto_resolves_environment_from_execution_record(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    environments_dir = tmp_path / "config" / "environments"
+    environments_dir.mkdir(parents=True)
+    write_json(environments_dir / "dev.json", ENVIRONMENT)
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+    output_dir = tmp_path / "reports"
+
+    exit_code = main([
+        "report",
+        "--execution", str(exec_path),
+        "--output", str(output_dir),
+    ])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Using environment 'dev' (auto-detected from execution file)" in captured.out
+    assert list(output_dir.glob("*.html"))
+
+
+def test_report_auto_resolve_failure_suggests_explicit_environment(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+
+    exit_code = main([
+        "report",
+        "--execution", str(exec_path),
+        "--output", str(tmp_path / "reports"),
+    ])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "--environment" in captured.out
+
+
+def test_report_explicit_environment_differing_from_record_prints_mismatch_note(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    other_env_path = tmp_path / "other.json"
+    write_json(other_env_path, {**ENVIRONMENT, "environment_name": "other"})
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+
+    exit_code = main([
+        "report",
+        "--execution", str(exec_path),
+        "--environment", str(other_env_path),
+        "--output", str(tmp_path / "reports"),
+    ])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "differs from the environment recorded" in captured.out
 
 
 # --- Bilingual labels (Principle X) ---

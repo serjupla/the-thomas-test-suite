@@ -3,7 +3,7 @@ import sys
 import types
 from unittest.mock import MagicMock
 
-from thomas.cli import main
+from thomas.cli import BANNER, main
 
 ENVIRONMENT = {
     "schema_version": 1,
@@ -148,6 +148,37 @@ def test_validate_second_run_appends_second_round(tmp_path, monkeypatch):
     assert record_after_second["results"][0]["final_status"] == "passed"
 
 
+def test_validate_prints_banner_before_any_other_output(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    write_json(tmp_path / "sc1.json", SCENARIO)
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, ENVIRONMENT)
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+
+    main([
+        "validate",
+        "--execution", str(exec_path),
+        "--environment", str(env_path),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    captured = capsys.readouterr()
+    banner_first_line = BANNER.strip().splitlines()[0]
+    assert captured.out.startswith(banner_first_line)
+
+
+def test_validate_help_does_not_print_banner(capsys):
+    try:
+        main(["validate", "--help"])
+    except SystemExit:
+        pass
+
+    captured = capsys.readouterr()
+    banner_first_line = BANNER.strip().splitlines()[0]
+    assert banner_first_line not in captured.out
+
+
 def test_validate_missing_connector_aborts_without_touching_file(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     write_json(tmp_path / "sc1.json", SCENARIO)
@@ -166,6 +197,65 @@ def test_validate_missing_connector_aborts_without_touching_file(tmp_path, monke
 
     assert exit_code == 1
     assert exec_path.read_bytes() == before
+
+
+def test_validate_auto_resolves_environment_from_execution_record(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    write_json(tmp_path / "sc1.json", SCENARIO)
+    environments_dir = tmp_path / "config" / "environments"
+    environments_dir.mkdir(parents=True)
+    write_json(environments_dir / "dev.json", ENVIRONMENT)
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+
+    exit_code = main([
+        "validate",
+        "--execution", str(exec_path),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Using environment 'dev' (auto-detected from execution file)" in captured.out
+    record = json.loads(exec_path.read_text())
+    assert record["results"][0]["final_status"] == "passed"
+
+
+def test_validate_auto_resolve_failure_suggests_explicit_environment(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    write_json(tmp_path / "sc1.json", SCENARIO)
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+
+    exit_code = main([
+        "validate",
+        "--execution", str(exec_path),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "--environment" in captured.out
+
+
+def test_validate_explicit_environment_differing_from_record_prints_mismatch_note(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    write_json(tmp_path / "sc1.json", SCENARIO)
+    other_env_path = tmp_path / "other.json"
+    write_json(other_env_path, {**ENVIRONMENT, "environment_name": "other"})
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+
+    exit_code = main([
+        "validate",
+        "--execution", str(exec_path),
+        "--environment", str(other_env_path),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "differs from the environment recorded" in captured.out
 
 
 ORACLE_ENVIRONMENT = {

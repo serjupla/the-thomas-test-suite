@@ -3,7 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from thomas.core.loading import ThomasFileError, load_environment, load_scenarios, load_variables
+from thomas.core.loading import (
+    ThomasFileError,
+    load_environment,
+    load_scenarios,
+    load_variables,
+    resolve_environment_path,
+)
 
 VALID_SCENARIO = {
     "schema_version": 1,
@@ -233,3 +239,38 @@ def test_load_environment_rejects_empty_company_name(tmp_path):
 
     with pytest.raises(ThomasFileError):
         load_environment(env_path)
+
+
+def test_resolve_environment_path_returns_single_match(tmp_path):
+    environments_dir = tmp_path / "config" / "environments"
+    environments_dir.mkdir(parents=True)
+    write_json(environments_dir / "dev.json", {**VALID_ENVIRONMENT, "environment_name": "internet-tests"})
+    write_json(environments_dir / "staging.json", {**VALID_ENVIRONMENT, "environment_name": "staging"})
+
+    resolved = resolve_environment_path("internet-tests", tmp_path)
+
+    assert resolved == environments_dir / "dev.json"
+
+
+def test_resolve_environment_path_raises_on_zero_matches(tmp_path):
+    environments_dir = tmp_path / "config" / "environments"
+    environments_dir.mkdir(parents=True)
+    write_json(environments_dir / "staging.json", {**VALID_ENVIRONMENT, "environment_name": "staging"})
+
+    with pytest.raises(ThomasFileError):
+        resolve_environment_path("internet-tests", tmp_path)
+
+
+def test_resolve_environment_path_raises_on_multiple_matches(tmp_path):
+    environments_dir = tmp_path / "config" / "environments"
+    environments_dir.mkdir(parents=True)
+    write_json(environments_dir / "a.json", {**VALID_ENVIRONMENT, "environment_name": "internet-tests"})
+    write_json(environments_dir / "b.json", {**VALID_ENVIRONMENT, "environment_name": "internet-tests"})
+
+    with pytest.raises(ThomasFileError):
+        resolve_environment_path("internet-tests", tmp_path)
+
+
+def test_resolve_environment_path_raises_when_directory_missing(tmp_path):
+    with pytest.raises(ThomasFileError):
+        resolve_environment_path("internet-tests", tmp_path)

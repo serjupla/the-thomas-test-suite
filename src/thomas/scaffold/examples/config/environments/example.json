@@ -4,6 +4,7 @@
   "system_name": "JSONPlaceholder (public demo API)",
   "timezone": "UTC",
   "report_language": "en",
+  "company_logo_path": "../company-logo.svg",
   "api": {
     "base_url": "https://jsonplaceholder.typicode.com",
     "timeout_seconds": 30

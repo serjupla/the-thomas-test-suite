@@ -16,6 +16,8 @@
 | F009 | Aplicar design system ao relatório HTML (cores, tipografia, espaçamento, responsivo) | 1 | Concluído | 2026-07-29 |
 | F010 | Reestruturar relatório HTML em 3 views (Dashboard, Ambiente de execução, Timeline) | 1 | Concluído | 2026-07-29 |
 | F011 | Quick start de primeira experiência para `thomas init` (exemplos contra API pública real, sem servidor local) | 1 | Concluído | 2026-07-31 |
+| F012 | Melhorias de UX de CLI (`--version`, ambiente automático em `validate`/`report`, banner ASCII, convite para estrela no GitHub) | 1 | Concluído | 2026-07-31 |
+| F013 | Melhorias no relatório (detalhamento de validação, denylist de segredos, título de execução, branding, gráficos) | 1 | Concluído | 2026-07-31 |
 | F06 | Conector DB2 | 2 | Não iniciado | — |
 | F07 | Conector Kafka | 2 | Não iniciado | — |
 | F08 | Conector MongoDB | 2 | Não iniciado | — |

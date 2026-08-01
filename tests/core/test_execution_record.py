@@ -26,7 +26,14 @@ def make_result(**overrides) -> ScenarioResult:
         "api_response": {"status_code": 201, "body": {"id": "abc-123"}},
         "request_technical_error": None,
         "api_checks_result": [
-            {"id": "http_status", "expected": 201, "obtained": 201, "operator": "equals", "passed": True}
+            {
+                "id": "http_status",
+                "field": "status_code",
+                "expected": 201,
+                "obtained": 201,
+                "operator": "equals",
+                "passed": True,
+            }
         ],
         "api_result": "passed",
         "final_status": "passed",
@@ -46,7 +53,7 @@ def test_execution_record_validates_against_schema(tmp_path):
         timezone_name="America/Sao_Paulo",
         start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
         included_scenarios=["a.json"],
-        services_info=[{"name": "svc", "collected_at": "2026-07-25T14:30:01-03:00", "status_code": 200, "error": None, "data": {"version": "1.0"}}],
+        services_info=[{"name": "svc", "info_url": "https://svc.test/info", "collected_at": "2026-07-25T14:30:01-03:00", "status_code": 200, "error": None, "data": {"version": "1.0"}}],
         results=[make_result()],
     )
 
@@ -101,7 +108,14 @@ def test_final_status_failed():
         final_status="failed",
         api_result="failed",
         api_checks_result=[
-            {"id": "http_status", "expected": 201, "obtained": 500, "operator": "equals", "passed": False}
+            {
+                "id": "http_status",
+                "field": "status_code",
+                "expected": 201,
+                "obtained": 500,
+                "operator": "equals",
+                "passed": False,
+            }
         ],
     )
     assert result.to_dict()["final_status"] == "failed"

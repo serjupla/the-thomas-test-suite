@@ -63,6 +63,7 @@ where = ["src"]
 thomas = [
     "schemas/*.json",
     "scaffold/**/*",
+    "scaffold/.gitignore.dist",
     "report/*.j2",
     "report/assets/*.svg",
 ]

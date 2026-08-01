@@ -40,7 +40,13 @@ def poll_services_info(services_info: list[dict[str, Any]], variables: dict[str,
     results: list[dict[str, Any]] = []
     for service in services_info:
         collected_at = datetime.now(timezone.utc).isoformat()
-        entry: dict[str, Any] = {"name": service["name"], "collected_at": collected_at, "error": None, "status_code": None}
+        entry: dict[str, Any] = {
+            "name": service["name"],
+            "info_url": service["info_url"],
+            "collected_at": collected_at,
+            "error": None,
+            "status_code": None,
+        }
         service_ssl_verify = service.get("ssl_verify", True)
 
         # T033-T035: Resolve service headers with variables
@@ -101,6 +107,7 @@ def _evaluate_api_checks(
         results.append(
             {
                 "id": check["id"],
+                "field": check["field"],
                 "expected": expected,
                 "obtained": outcome.obtained_value,
                 "operator": check["operator"],
@@ -185,6 +192,7 @@ def dispatch_scenario(
             api_checks_result=[],
             api_result="failed",
             final_status="failed",
+            description=document.get("description"),
         )
 
     merged_headers = _merge_headers(default_headers, resolved_scenario_headers)
@@ -225,6 +233,7 @@ def dispatch_scenario(
             api_checks_result=[],
             api_result="failed",
             final_status="failed",
+            description=document.get("description"),
         )
 
     response_timestamp = datetime.now(timezone.utc).isoformat()
@@ -271,6 +280,7 @@ def dispatch_scenario(
         api_checks_result=api_checks_result,
         api_result=api_result,
         final_status=final_status,
+        description=document.get("description"),
     )
 
 
@@ -281,6 +291,7 @@ def run_request(
     variables: dict[str, Any],
     output_dir: Path,
     progress_callback=None,
+    title: str | None = None,
 ) -> Path:
     """Execute the full `thomas request` flow and write the execution record. Returns the written file path."""
     scenarios = list(scenarios)
@@ -326,6 +337,7 @@ def run_request(
         company_name=environment.get("company_name"),
         department_name=environment.get("department_name"),
         prepared_variables=variables,
+        title=title.strip() if title and title.strip() else None,
     )
 
     return write_execution_record(record, output_dir)

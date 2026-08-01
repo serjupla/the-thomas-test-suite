@@ -311,6 +311,7 @@ preparation step.
   "execution_id": "execution_2026-07-25_1430",
   "thomas_version": "0.1.0",
   "environment": "staging",
+  "title": "Release 4.2 — Regression Pass",
   "start_timestamp": "2026-07-25T14:30:00-03:00",
   "included_scenarios": [
     "scenarios/instant_transfer/valid_amount_transfer.json",
@@ -331,6 +332,7 @@ preparation step.
       "feature": "instant_transfer",
       "scenario_id": "valid_amount_transfer",
       "folder": "instant_transfer",
+      "description": "An instant transfer with valid data must be settled",
       "correlation_id": "abc-123-def",
       "correlation_error": null,
       "request_timestamp": "2026-07-25T14:30:02-03:00",
@@ -348,8 +350,8 @@ preparation step.
           "timestamp": "2026-07-25T16:00:00-03:00",
           "environment_used": "staging",
           "results": [
-            { "id": "transaction_status_oracle", "connector": "oracle_main", "expected": "SETTLED", "obtained": "PROCESSING", "operator": "equals", "passed": false, "technical_error": null },
-            { "id": "kafka_confirmation", "connector": "kafka_main", "expected": "CONFIRMED", "obtained": null, "operator": "equals", "passed": false, "technical_error": "timeout waiting for message on topic" }
+            { "id": "transaction_status_oracle", "connector": "oracle_main", "field": "status", "expected": "SETTLED", "obtained": "PROCESSING", "operator": "equals", "query": "SELECT status FROM transactions WHERE correlation_id = :correlation_id", "passed": false, "technical_error": null },
+            { "id": "kafka_confirmation", "connector": "kafka_main", "field": "status", "expected": "CONFIRMED", "obtained": null, "operator": "equals", "query": "topic=confirmations filter=correlationId", "passed": false, "technical_error": "timeout waiting for message on topic" }
           ],
           "round_result": "failed"
         },
@@ -357,8 +359,8 @@ preparation step.
           "timestamp": "2026-07-25T18:30:00-03:00",
           "environment_used": "staging",
           "results": [
-            { "id": "transaction_status_oracle", "connector": "oracle_main", "expected": "SETTLED", "obtained": "SETTLED", "operator": "equals", "passed": true, "technical_error": null },
-            { "id": "kafka_confirmation", "connector": "kafka_main", "expected": "CONFIRMED", "obtained": "CONFIRMED", "operator": "equals", "passed": true, "technical_error": null }
+            { "id": "transaction_status_oracle", "connector": "oracle_main", "field": "status", "expected": "SETTLED", "obtained": "SETTLED", "operator": "equals", "query": "SELECT status FROM transactions WHERE correlation_id = :correlation_id", "passed": true, "technical_error": null },
+            { "id": "kafka_confirmation", "connector": "kafka_main", "field": "status", "expected": "CONFIRMED", "obtained": "CONFIRMED", "operator": "equals", "query": "topic=confirmations filter=correlationId", "passed": true, "technical_error": null }
           ],
           "round_result": "passed"
         }
@@ -411,6 +413,23 @@ technical-error-vs-assertion-failure distinction used for `validations`:
   message when the request itself could not be completed (connection
   error, timeout). When set, `api_response` is `null` and `api_result` is
   `"failed"`.
+
+### Report title, scenario description, and per-check field/query (additive, no `schema_version` bump)
+
+- `title` (top-level, optional string): set only when `thomas request --title
+  "<text>"` was supplied with non-blank content; absent otherwise. Rendered
+  as a dedicated section below the report header, escaped as literal text.
+- `results[].description` (optional string, `null` when absent): copied
+  verbatim from the source scenario's own `description` field at `thomas
+  request` time. Shown in the report's scenario detail view when present.
+- `results[].validation_rounds[].results[].field` and `.query`: `field` is
+  copied from `validation["field"]`; `query` is produced by
+  `connector.describe_query(validation)` (the literal SQL text for Oracle,
+  `lookup: <validation_id>` for the Fake connector). Both are subject to the
+  same sensitive-keyword masking and connector `NEVER_SHOW_FIELDS` denylist
+  as any other field in the report (see docs/architecture/05-connectors.md).
+  Execution records written before this feature simply lack these keys; the
+  report falls back to a neutral placeholder ("—") for `query` in that case.
 
 ### Response timestamp (`thomas request`)
 

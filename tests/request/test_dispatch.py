@@ -1,3 +1,4 @@
+import json
 
 import responses
 from requests.exceptions import ConnectionError
@@ -8,6 +9,7 @@ from thomas.request.dispatch import (
     _resolve_headers,
     dispatch_scenario,
     poll_services_info,
+    run_request,
 )
 
 
@@ -51,6 +53,96 @@ def test_dispatch_scenario_happy_path():
     assert result.request_technical_error is None
     assert result.response_timestamp is not None
     assert result.response_timestamp >= result.request_timestamp
+
+
+@responses.activate
+def test_dispatch_scenario_captures_scenario_description_when_present():
+    responses.add(
+        responses.POST,
+        "https://example.test/api/orders",
+        json={"id": "abc-123", "status": "PENDING"},
+        status=201,
+    )
+
+    result = dispatch_scenario(
+        make_scenario(document_overrides={"description": "A valid transfer must be settled"}),
+        base_url="https://example.test/api",
+        timeout_seconds=30,
+        variables={},
+    )
+
+    assert result.description == "A valid transfer must be settled"
+    assert result.to_dict()["description"] == "A valid transfer must be settled"
+
+
+@responses.activate
+def test_dispatch_scenario_description_is_none_when_absent():
+    responses.add(
+        responses.POST,
+        "https://example.test/api/orders",
+        json={"id": "abc-123", "status": "PENDING"},
+        status=201,
+    )
+
+    result = dispatch_scenario(
+        make_scenario(),
+        base_url="https://example.test/api",
+        timeout_seconds=30,
+        variables={},
+    )
+
+    assert result.description is None
+
+
+@responses.activate
+def test_run_request_persists_title_in_execution_record(tmp_path):
+    responses.add(
+        responses.POST,
+        "https://example.test/api/orders",
+        json={"id": "abc-123", "status": "PENDING"},
+        status=201,
+    )
+    environment = {
+        "environment_name": "dev",
+        "timezone": "America/Sao_Paulo",
+        "api": {"base_url": "https://example.test/api"},
+    }
+
+    output_path = run_request(
+        environment=environment,
+        scenarios=[make_scenario()],
+        variables={},
+        output_dir=tmp_path,
+        title="Release 4.2",
+    )
+
+    record = json.loads(output_path.read_text())
+    assert record["title"] == "Release 4.2"
+
+
+@responses.activate
+def test_run_request_omits_title_when_not_supplied(tmp_path):
+    responses.add(
+        responses.POST,
+        "https://example.test/api/orders",
+        json={"id": "abc-123", "status": "PENDING"},
+        status=201,
+    )
+    environment = {
+        "environment_name": "dev",
+        "timezone": "America/Sao_Paulo",
+        "api": {"base_url": "https://example.test/api"},
+    }
+
+    output_path = run_request(
+        environment=environment,
+        scenarios=[make_scenario()],
+        variables={},
+        output_dir=tmp_path,
+    )
+
+    record = json.loads(output_path.read_text())
+    assert "title" not in record
 
 
 @responses.activate

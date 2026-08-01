@@ -50,13 +50,15 @@ def compute_final_status(api_result: str, has_validations: bool, validation_roun
 def _run_single_validation(connector: BaseConnector, validation: dict, correlation_id: str) -> dict:
     try:
         obtained = connector.run_validation(validation, correlation_id)
-    except Exception as exc:  # ConnectorTechnicalError or any other unexpected exception
+    except Exception as exc:
         return {
             "id": validation["id"],
             "connector": validation["connector"],
+            "field": validation.get("field", ""),
             "expected": validation["expected_value"],
             "obtained": None,
             "operator": validation["operator"],
+            "query": connector.describe_query(validation),
             "passed": False,
             "technical_error": str(exc),
         }
@@ -65,15 +67,17 @@ def _run_single_validation(connector: BaseConnector, validation: dict, correlati
     return {
         "id": validation["id"],
         "connector": validation["connector"],
+        "field": validation.get("field", ""),
         "expected": validation["expected_value"],
         "obtained": obtained,
         "operator": validation["operator"],
+        "query": connector.describe_query(validation),
         "passed": result.passed,
         "technical_error": result.technical_error,
     }
 
 
-def run_validate(execution_record: dict, environment: dict) -> dict:
+def run_validate(execution_record: dict, environment: dict, progress_callback=None) -> dict:
     base_dir = Path.cwd()
     tz = ZoneInfo(environment["timezone"])
     environment_name = environment["environment_name"]
@@ -98,6 +102,8 @@ def run_validate(execution_record: dict, environment: dict) -> dict:
         for index, scenario_result in enumerate(execution_record["results"]):
             validations = scenario_validations[index]
             if not is_eligible(scenario_result, validations):
+                if progress_callback is not None:
+                    progress_callback(scenario_result)
                 continue
 
             correlation_id = scenario_result.get("correlation_id") or ""
@@ -112,6 +118,8 @@ def run_validate(execution_record: dict, environment: dict) -> dict:
             scenario_result["final_status"] = compute_final_status(
                 scenario_result["api_result"], len(validations) > 0, scenario_result["validation_rounds"]
             )
+            if progress_callback is not None:
+                progress_callback(scenario_result)
     finally:
         for connector in connectors.values():
             connector.disconnect()
