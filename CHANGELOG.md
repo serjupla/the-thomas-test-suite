@@ -5,6 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-08-01
+
+### Added
+
+- CLI UX improvements (F012): `--version` flag; `thomas validate` and
+  `thomas report` now auto-detect the environment file from the execution
+  record when `--environment` is omitted; ASCII banner on every command;
+  invitation to star the project on GitHub.
+- Report validation detail (F013): the Validation section of scenario
+  detail now shows the compared field before the operator, a Query column
+  (with truncation, tooltip, and copy button) alongside the timezone-correct
+  timestamp, and the scenario's own description when expanded.
+- Report title (F013): new optional `--title` parameter on `thomas request`,
+  recorded in the execution record and displayed in a dedicated title
+  section below the report header.
+- Never-show denylist for connector secrets (F013): highly sensitive
+  connector fields (e.g. the Oracle `password`) are never rendered in the
+  report, in any state — shown as the field name with a fixed "not
+  displayed" indicator instead. New internal directive for adding
+  never-show fields to future connector types.
+
+### Changed
+
+- Report branding (F013): header logo replaced with
+  `thomas-icon.svg`/`thomas-icon-dark.svg`; "Executado em" relabeled to
+  "Gerado em", still showing the timezone-correct timestamp.
+- Report masking (F013): `user`, `usuário`, and `usuario` added to the
+  sensitive-field masking keyword list.
+- Report visual consistency (F013): hide/show controls for sensitive
+  fields now use the same blue accent color as copy buttons.
+- Report charts (F013): the Timeline events chart now includes information
+  service data-collection events; the latency chart uses points instead of
+  circles.
+
 ## [0.4.0] - 2026-07-31
 
 ### Changed
@@ -100,6 +134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Initial PyPI packaging under the distribution name
   `the-thomas-test-suite` (CLI command remains `thomas`).
 
+[0.5.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.1.0...v0.2.0
