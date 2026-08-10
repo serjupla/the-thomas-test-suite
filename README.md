@@ -41,8 +41,10 @@ characteristics no single researched tool brings together:
 ```bash
 pip install the-thomas-test-suite
 
-# To run `thomas validate` against Oracle:
+# To run `thomas validate` against a specific data source, install its extra:
 pip install "the-thomas-test-suite[oracle]"
+pip install "the-thomas-test-suite[db2]"
+pip install "the-thomas-test-suite[kafka]"
 ```
 
 ## Quickstart
@@ -111,13 +113,14 @@ Every run also produces a self-contained, bilingual HTML report with three views
 
 The Thomas is under active development. `thomas request`, `thomas
 validate` (data-source validation), and `thomas report` (self-contained,
-bilingual HTML report) are all fully functional, together with a first
-real connector (Oracle, via the `thomas[oracle]` extra). Upcoming work
-adds further connectors (DB2, MongoDB, Kafka) and multi-environment
-refinement. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full feature
-roadmap and current status (the roadmap is a process document kept in
-Portuguese by the maintainer; feature names and statuses are summarized
-here in English).
+bilingual HTML report) are all fully functional, together with three
+real connectors (Oracle, DB2, and Kafka, via the `thomas[oracle]`,
+`thomas[db2]`, and `thomas[kafka]` extras). Upcoming work adds a MongoDB
+connector and multi-environment refinement. See
+[docs/ROADMAP.md](docs/ROADMAP.md) for the full feature roadmap and
+current status (the roadmap is a process document kept in Portuguese by
+the maintainer; feature names and statuses are summarized here in
+English).
 
 ## Architecture
 

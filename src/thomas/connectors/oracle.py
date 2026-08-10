@@ -40,7 +40,7 @@ class OracleConnector(BaseConnector):
                 "failed to connect to Oracle database — check dsn/username/password"
             ) from exc
 
-    def run_validation(self, validation: dict, correlation_id: str) -> Any:
+    def run_validation(self, validation: dict, correlation_id: str, request_timestamp: str) -> Any:
         cursor = self._connection.cursor()
         try:
             cursor.execute(validation["query"], correlation_id=correlation_id)

@@ -18,8 +18,8 @@
 | F011 | Quick start de primeira experiência para `thomas init` (exemplos contra API pública real, sem servidor local) | 1 | Concluído | 2026-07-31 |
 | F012 | Melhorias de UX de CLI (`--version`, ambiente automático em `validate`/`report`, banner ASCII, convite para estrela no GitHub) | 1 | Concluído | 2026-07-31 |
 | F013 | Melhorias no relatório (detalhamento de validação, denylist de segredos, título de execução, branding, gráficos) | 1 | Concluído | 2026-07-31 |
-| F06 | Conector DB2 | 2 | Não iniciado | — |
-| F07 | Conector Kafka | 2 | Não iniciado | — |
+| F06 | Conector DB2 | 2 | Concluído | 2026-08-08 |
+| F07 | Conector Kafka | 2 | Concluído | 2026-08-09 |
 | F08 | Conector MongoDB | 2 | Não iniciado | — |
 
 > Atualizar "Status" (Não iniciado / Em andamento / Concluído) e "Data de

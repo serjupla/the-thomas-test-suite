@@ -20,13 +20,15 @@ class BaseConnector(ABC):
         """Establishes the connection. Raises ConnectorTechnicalError on failure."""
 
     @abstractmethod
-    def run_validation(self, validation: dict, correlation_id: str) -> Any:
+    def run_validation(self, validation: dict, correlation_id: str, request_timestamp: str) -> Any:
         """
         Executes the query described in the validation (query, topic+filter,
         etc.) and returns the raw value of the requested field
         (`validation["field"]`). Raises ConnectorTechnicalError on
         infrastructure failure — must never silently swallow the error by
-        returning None.
+        returning None. `request_timestamp` is the scenario's resolved
+        request timestamp (ISO-8601 string); most connectors ignore it, but
+        time-positioned stream connectors (e.g. Kafka) require it.
         """
 
     def describe_query(self, validation: dict) -> str:
@@ -176,12 +178,15 @@ detect this and guide the user to exactly which extra to install (e.g.
 ```
 
 - Driver: `confluent-kafka`.
-- Consumption strategy: an **ephemeral consumer group, exclusive to each
-  `thomas validate` run**, configured to read from the
-  `request_timestamp` of the scenario being validated (offset-by-time,
-  not from the beginning of the topic) up to the present moment, with a
-  configurable timeout (default 30s per validation) — avoids
-  reprocessing the entire topic history on every round.
+- Consumption strategy: a fresh, **ephemeral consumer with a
+  UUID-derived `group.id`, created and torn down per `run_validation`
+  call**, positioned via manual partition `assign()` (never
+  `subscribe()`) so no consumer group is ever registered with the
+  broker's group coordinator — no orphaned-group cleanup needed.
+  Positioned by offset-by-timestamp seeking at the `request_timestamp`
+  of the scenario being validated (never from the beginning of the
+  topic), bounded by a configurable timeout (default 30s, also bounds
+  the initial `connect()` reachability probe).
 - Filters messages whose field indicated by `key_filter` matches the
   scenario's `correlation_id`.
 - If no matching message is found within the timeout:

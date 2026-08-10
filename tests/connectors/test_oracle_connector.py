@@ -72,7 +72,9 @@ def test_run_validation_uses_bind_variable_and_returns_single_row_value(monkeypa
     connector.connect()
 
     result = connector.run_validation(
-        {"query": "SELECT status, amount FROM t WHERE id = :correlation_id", "field": "status"}, "corr-1"
+        {"query": "SELECT status, amount FROM t WHERE id = :correlation_id", "field": "status"},
+        "corr-1",
+        "2026-07-28T09:00:00-03:00",
     )
 
     assert result == "SETTLED"
@@ -109,7 +111,7 @@ def test_run_validation_zero_rows_raises_technical_error(monkeypatch):
     connector.connect()
 
     with pytest.raises(ConnectorTechnicalError, match="no record found for the given query"):
-        connector.run_validation({"query": "SELECT status FROM t", "field": "status"}, "corr-1")
+        connector.run_validation({"query": "SELECT status FROM t", "field": "status"}, "corr-1", "2026-07-28T09:00:00-03:00")
 
 
 def test_run_validation_multiple_rows_raises_technical_error(monkeypatch):
@@ -120,7 +122,7 @@ def test_run_validation_multiple_rows_raises_technical_error(monkeypatch):
     with pytest.raises(
         ConnectorTechnicalError, match="query returned multiple records; refine the query to return a single record"
     ):
-        connector.run_validation({"query": "SELECT status FROM t", "field": "status"}, "corr-1")
+        connector.run_validation({"query": "SELECT status FROM t", "field": "status"}, "corr-1", "2026-07-28T09:00:00-03:00")
 
 
 def test_connect_failure_raises_curated_error_and_logs_raw_exception_at_debug(monkeypatch, caplog):
@@ -144,7 +146,7 @@ def test_run_validation_field_lookup_is_case_insensitive(monkeypatch):
     connector, _, _ = _make_connector(monkeypatch, cursor=cursor)
     connector.connect()
 
-    result = connector.run_validation({"query": "SELECT status FROM t", "field": "status"}, "corr-1")
+    result = connector.run_validation({"query": "SELECT status FROM t", "field": "status"}, "corr-1", "2026-07-28T09:00:00-03:00")
 
     assert result == "SETTLED"
 
@@ -168,8 +170,8 @@ def test_run_validation_does_not_reconnect_across_multiple_calls(monkeypatch):
     connector, connect_mock, _ = _make_connector(monkeypatch, cursor=cursor)
     connector.connect()
 
-    connector.run_validation({"query": "SELECT status FROM t", "field": "status"}, "corr-1")
-    connector.run_validation({"query": "SELECT status FROM t", "field": "status"}, "corr-2")
+    connector.run_validation({"query": "SELECT status FROM t", "field": "status"}, "corr-1", "2026-07-28T09:00:00-03:00")
+    connector.run_validation({"query": "SELECT status FROM t", "field": "status"}, "corr-2", "2026-07-28T09:00:00-03:00")
 
     connect_mock.assert_called_once()
 

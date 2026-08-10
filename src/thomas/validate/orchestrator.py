@@ -47,9 +47,11 @@ def compute_final_status(api_result: str, has_validations: bool, validation_roun
     return validation_rounds[-1]["round_result"]
 
 
-def _run_single_validation(connector: BaseConnector, validation: dict, correlation_id: str) -> dict:
+def _run_single_validation(
+    connector: BaseConnector, validation: dict, correlation_id: str, request_timestamp: str
+) -> dict:
     try:
-        obtained = connector.run_validation(validation, correlation_id)
+        obtained = connector.run_validation(validation, correlation_id, request_timestamp)
     except Exception as exc:
         return {
             "id": validation["id"],
@@ -107,8 +109,11 @@ def run_validate(execution_record: dict, environment: dict, progress_callback=No
                 continue
 
             correlation_id = scenario_result.get("correlation_id") or ""
+            request_timestamp = scenario_result["request_timestamp"]
             validation_results = [
-                _run_single_validation(connectors[validation["connector"]], validation, correlation_id)
+                _run_single_validation(
+                    connectors[validation["connector"]], validation, correlation_id, request_timestamp
+                )
                 for validation in validations
             ]
 

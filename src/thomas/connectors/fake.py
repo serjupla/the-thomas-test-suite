@@ -25,7 +25,7 @@ class FakeConnector(BaseConnector):
     def describe_query(self, validation: dict) -> str:
         return f"lookup: {validation['id']}"
 
-    def run_validation(self, validation: dict, correlation_id: str) -> Any:
+    def run_validation(self, validation: dict, correlation_id: str, request_timestamp: str) -> Any:
         validation_id = validation["id"]
         failures = self.config.get("failures", {})
         if validation_id in failures:

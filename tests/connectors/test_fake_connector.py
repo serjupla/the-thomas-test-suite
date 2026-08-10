@@ -8,7 +8,7 @@ def test_returns_preconfigured_value_for_known_id():
     connector = FakeConnector({"values": {"balance_check": 150.0}, "failures": {}})
     connector.connect()
 
-    assert connector.run_validation({"id": "balance_check"}, "corr-1") == 150.0
+    assert connector.run_validation({"id": "balance_check"}, "corr-1", "2026-07-28T09:00:00-03:00") == 150.0
 
 
 def test_raises_technical_error_for_id_in_failures():
@@ -16,7 +16,7 @@ def test_raises_technical_error_for_id_in_failures():
     connector.connect()
 
     with pytest.raises(ConnectorTechnicalError, match="connection timed out"):
-        connector.run_validation({"id": "balance_check"}, "corr-1")
+        connector.run_validation({"id": "balance_check"}, "corr-1", "2026-07-28T09:00:00-03:00")
 
 
 def test_raises_technical_error_for_id_in_neither_map():
@@ -24,7 +24,7 @@ def test_raises_technical_error_for_id_in_neither_map():
     connector.connect()
 
     with pytest.raises(ConnectorTechnicalError, match="balance_check"):
-        connector.run_validation({"id": "balance_check"}, "corr-1")
+        connector.run_validation({"id": "balance_check"}, "corr-1", "2026-07-28T09:00:00-03:00")
 
 
 def test_never_show_fields_unchanged_empty():

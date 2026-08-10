@@ -504,6 +504,49 @@ def test_oracle_connector_password_never_appears_in_rendered_html():
     assert 'data-real-value="svc_user"' in html
 
 
+def test_db2_connector_credentials_never_appear_in_rendered_html():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results)
+    environment = dict(
+        ENVIRONMENT,
+        connectors={
+            "db2_main": {
+                "type": "db2",
+                "connection_string": "DATABASE=fictional;HOSTNAME=fictional-host;PORT=50000;PROTOCOL=TCPIP;",
+                "username": "fictional_user",
+                "password": "fictional-secret",
+            }
+        },
+    )
+    html = generate_report_html(record, environment, b"{}")
+    assert "fictional-secret" not in html
+    assert "fictional_user" not in html
+    assert "DATABASE=fictional" not in html
+
+
+def test_kafka_connector_password_appears_masked_and_revealable_in_rendered_html():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results)
+    environment = dict(
+        ENVIRONMENT,
+        connectors={
+            "kafka_main": {
+                "type": "kafka",
+                "brokers": ["broker1:9092"],
+                "username": "fictional_user",
+                "password": "fictional-secret",
+            }
+        },
+    )
+    html = generate_report_html(record, environment, b"{}")
+    soup = BeautifulSoup(html, "html.parser")
+    # password is maskable/revealable for Kafka (deliberate divergence, FR-018) —
+    # not the never-show badge used by Oracle/DB2
+    assert soup.select_one(".not-displayed-badge") is None
+    assert 'data-real-value="fictional-secret"' in html
+    assert ">fictional-secret<" not in html
+
+
 def test_gantt_services_row_renders_one_marker_per_collection_event():
     results = [_scenario("sc1", "", "feat", "passed")]
     record = _execution_record(

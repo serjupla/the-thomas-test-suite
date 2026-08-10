@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "feature": "public_api_kafka_validation",
+  "scenario_id": "validate_via_kafka",
+  "description": "Demonstrates validating an asynchronously published event through a real (here, fictional) Kafka topic: the API call creates a resource, then a Kafka consumer confirms the corresponding event landed on the downstream topic.",
+  "endpoint": {
+    "method": "POST",
+    "path": "/posts"
+  },
+  "payload": {
+    "title": "order-{{post_title}}",
+    "body": "{{post_body}}",
+    "userId": "{{user_id}}"
+  },
+  "api_checks": [
+    { "id": "status_created", "field": "status_code", "operator": "equals", "expected_value": 201 }
+  ],
+  "correlation": {
+    "source": "api_response",
+    "field": "$.id"
+  },
+  "validations": [
+    {
+      "id": "order_event_settled",
+      "connector": "kafka_main",
+      "topic": "fictional_orders_events",
+      "key_filter": "correlationId",
+      "field": "status",
+      "operator": "equals",
+      "expected_value": "SETTLED"
+    }
+  ]
+}

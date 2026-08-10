@@ -33,10 +33,12 @@ class BaseConnector(ABC):
         """Raises ConnectorTechnicalError on failure."""
 
     @abstractmethod
-    def run_validation(self, validation: dict, correlation_id: str) -> Any:
+    def run_validation(self, validation: dict, correlation_id: str, request_timestamp: str) -> Any:
         """Returns the raw obtained value for validation["field"]; raises
         ConnectorTechnicalError on infrastructure failure — never returns None
-        to silently signal a failure."""
+        to silently signal a failure. `request_timestamp` is the scenario's
+        resolved request timestamp (ISO-8601 string); most connectors ignore
+        it, but time-positioned stream connectors (e.g. Kafka) require it."""
 
     def describe_query(self, validation: dict) -> str:
         """Return a short, human-readable representation of the query/operation
@@ -68,11 +70,15 @@ def resolve_connector_type(type_name: str) -> type[BaseConnector]:
 
 
 def _register_builtin_types() -> None:
+    from thomas.connectors.db2 import DB2Connector
     from thomas.connectors.fake import FakeConnector
+    from thomas.connectors.kafka import KafkaConnector
     from thomas.connectors.oracle import OracleConnector
 
     CONNECTOR_TYPES["fake"] = FakeConnector
     CONNECTOR_TYPES["oracle"] = OracleConnector
+    CONNECTOR_TYPES["db2"] = DB2Connector
+    CONNECTOR_TYPES["kafka"] = KafkaConnector
 
 
 _register_builtin_types()

@@ -211,10 +211,10 @@ def test_unexpected_exception_during_run_validation_is_captured_per_validation(t
 
     original_run_validation = FakeConnector.run_validation
 
-    def boom_run_validation(self, validation, correlation_id):
+    def boom_run_validation(self, validation, correlation_id, request_timestamp):
         if validation["id"] == "v_boom":
             raise RuntimeError("unexpected failure")
-        return original_run_validation(self, validation, correlation_id)
+        return original_run_validation(self, validation, correlation_id, request_timestamp)
 
     monkeypatch.setattr(FakeConnector, "run_validation", boom_run_validation)
 

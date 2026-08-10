@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "feature": "public_api_db2_validation",
+  "scenario_id": "validate_via_db2",
+  "description": "Demonstrates validating a persisted record through a real (here, fictional) DB2 database: the API call creates a resource, then a DB2 query confirms it landed in the downstream system.",
+  "endpoint": {
+    "method": "POST",
+    "path": "/posts"
+  },
+  "payload": {
+    "title": "order-{{post_title}}",
+    "body": "{{post_body}}",
+    "userId": "{{user_id}}"
+  },
+  "api_checks": [
+    { "id": "status_created", "field": "status_code", "operator": "equals", "expected_value": 201 }
+  ],
+  "correlation": {
+    "source": "api_response",
+    "field": "$.id"
+  },
+  "validations": [
+    {
+      "id": "order_status_settled",
+      "connector": "db2_main",
+      "query": "SELECT status FROM fictional_orders WHERE order_id = :correlation_id",
+      "field": "status",
+      "operator": "equals",
+      "expected_value": "SETTLED"
+    }
+  ]
+}

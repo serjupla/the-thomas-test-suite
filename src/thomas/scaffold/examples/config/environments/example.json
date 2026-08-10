@@ -16,6 +16,18 @@
         "order_confirmed": "confirmed"
       },
       "failures": {}
+    },
+    "db2_main": {
+      "type": "db2",
+      "connection_string": "DATABASE=fictional_db;HOSTNAME=fictional-db2-host;PORT=50000;PROTOCOL=TCPIP;",
+      "username": "fictional_db2_user",
+      "password": "fictional-db2-password"
+    },
+    "kafka_main": {
+      "type": "kafka",
+      "brokers": ["fictional-kafka-broker1:9092", "fictional-kafka-broker2:9092"],
+      "username": "fictional_kafka_user",
+      "password": "fictional-kafka-password"
     }
   }
 }
