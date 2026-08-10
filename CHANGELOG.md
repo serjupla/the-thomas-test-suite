@@ -5,6 +5,36 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-08-09
+
+### Added
+
+- DB2 connector (F06): second real data-source connector, mirroring the
+  Oracle connector's behavior against IBM DB2 — `:correlation_id` as a
+  native bind variable (never string concatenation), zero/multiple rows
+  treated as a technical error, case-insensitive field extraction, one
+  connection reused per `validate` run, installable via the `thomas[db2]`
+  extra. `connection_string`, `username`, and `password` are permanently
+  hidden in the report, since `ibm-db` connection strings often embed
+  credentials inline.
+- Kafka connector (F07): validates that a message matching the scenario
+  was published to a topic, using `confluent-kafka` with a fresh,
+  ephemeral consumer created and torn down per validation call —
+  positioned by offset-by-timestamp seeking at the scenario's
+  `request_timestamp`, bounded by a configurable timeout (default 30s).
+  Resolves the most recent matching message on duplicates, extracts
+  fields via dot-path, installable via the `thomas[kafka]` extra. Unlike
+  every other connector, `password` is masked-by-default and
+  click-to-reveal in the report rather than permanently hidden, by
+  explicit product decision.
+
+### Changed
+
+- `BaseConnector.run_validation` now receives the scenario's resolved
+  `request_timestamp`, threaded through the `validate` orchestrator, so
+  time-positioned connectors like Kafka can seek correctly. Existing
+  connectors (Oracle, Fake) updated to the new signature.
+
 ## [0.5.0] - 2026-08-01
 
 ### Added
@@ -134,6 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Initial PyPI packaging under the distribution name
   `the-thomas-test-suite` (CLI command remains `thomas`).
 
+[0.6.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.2.0...v0.3.0
