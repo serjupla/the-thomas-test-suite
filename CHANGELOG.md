@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-09-17
+
+### Added
+
+- `extract_variables` (issue #7): scenarios can now declare a JSONPath
+  extraction from a response and expose the result as a variable that
+  later scenarios in the same `thomas request` run can consume, enabling
+  sequential flows (e.g. create → confirm) without an external
+  workaround. Target variables must be pre-declared in `variables.json`;
+  the run stops early if an extraction fails, and `variables.json` is
+  rewritten to disk with the final values at the end of the run. Two new
+  quickstart example scenarios (`06_extract_order_id`,
+  `07_consume_order_id`) demonstrate the feature.
+
+### Fixed
+
+- `thomas validate` no longer crashes with `TypeError: Object of type
+  datetime is not JSON serializable` when persisting an execution record
+  whose validation results contain `datetime`/`date` values (issue #8).
+
 ## [0.6.0] - 2026-08-09
 
 ### Added
@@ -164,6 +184,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Initial PyPI packaging under the distribution name
   `the-thomas-test-suite` (CLI command remains `thomas`).
 
+[0.7.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.3.0...v0.4.0
