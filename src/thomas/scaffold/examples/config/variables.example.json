@@ -3,6 +3,7 @@
   "variables": {
     "post_title": "Thomas quickstart",
     "post_body": "Created by thomas request during the quickstart example.",
-    "user_id": 1
+    "user_id": 1,
+    "order_id": ""
   }
 }

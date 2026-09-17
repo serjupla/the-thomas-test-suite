@@ -119,6 +119,14 @@ def test_generated_quickstart_examples_run_request_validate_report_without_local
         "https://jsonplaceholder.typicode.com/posts",
         callback=_post_echo_callback,
     )
+    responses.add(
+        responses.GET,
+        "https://jsonplaceholder.typicode.com/comments",
+        json=[],
+        status=200,
+    )
+
+    variables_path = tmp_path / "examples/config/variables.example.json"
 
     request_exit_code = main([
         "request",
@@ -138,6 +146,17 @@ def test_generated_quickstart_examples_run_request_validate_report_without_local
     assert results_by_id["create_new_post"]["api_result"] == "passed"
     assert results_by_id["create_and_confirm_order"]["api_result"] == "passed"
     assert results_by_id["create_and_confirm_order"]["final_status"] == "awaiting_validation"
+
+    # extract_variables chaining (feature 017): the producer extracts $.id into
+    # order_id, and the consumer's {{order_id}} resolves to the extracted value.
+    assert results_by_id["extract_order_id"]["extraction_results"] == [
+        {"json_path": "$.id", "as_variable": "order_id", "success": True, "error": None}
+    ]
+    assert results_by_id["consume_order_id"]["request_sent"]["path"] == "/comments?postId=101"
+    assert results_by_id["consume_order_id"]["api_result"] == "passed"
+
+    updated_variables = json.loads(variables_path.read_text())
+    assert updated_variables["variables"]["order_id"] == 101
 
     validate_exit_code = main([
         "validate",

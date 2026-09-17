@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "feature": "extract_variables_chaining",
+  "scenario_id": "consume_order_id",
+  "description": "Demonstrates the consuming side of extract_variables chaining: queries comments filtered by the order_id extracted by 06_extract_order_id.json. Uses a filter endpoint (not /posts/{{order_id}} directly) because JSONPlaceholder's POST /posts simulates creation without actually persisting the resource, so a direct GET of the newly 'created' id would 404 against the real API.",
+  "endpoint": {
+    "method": "GET",
+    "path": "/comments?postId={{order_id}}"
+  },
+  "api_checks": [
+    { "id": "status_ok", "field": "status_code", "operator": "equals", "expected_value": 200 }
+  ]
+}

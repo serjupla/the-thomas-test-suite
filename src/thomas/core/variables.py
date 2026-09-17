@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 from typing import Any
 
 _PLACEHOLDER_RE = re.compile(r"\{\{(\w+)\}\}")
@@ -61,3 +63,8 @@ def find_undefined_references(payload: dict[str, Any] | None, variables: dict[st
 
     walk(payload)
     return referenced - set(variables.keys())
+
+
+def save_variables(file_path: Path, variables: dict[str, Any]) -> None:
+    """Rewrite the variables file at file_path with the given final values."""
+    file_path.write_text(json.dumps({"schema_version": 1, "variables": variables}, indent=2))

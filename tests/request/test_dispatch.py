@@ -316,6 +316,65 @@ def test_dispatch_scenario_resolves_variables_in_api_checks():
 
 
 @responses.activate
+def test_run_request_chains_extracted_variable_across_scenarios(tmp_path):
+    responses.add(
+        responses.POST,
+        "https://example.test/api/orders",
+        json={"id": "extracted-order-id", "status": "PENDING"},
+        status=201,
+    )
+    responses.add(
+        responses.GET,
+        "https://example.test/api/orders/extracted-order-id",
+        json={"status": "CONFIRMED"},
+        status=200,
+    )
+
+    producer = make_scenario(
+        document_overrides={
+            "scenario_id": "producer",
+            "extract_variables": [{"json_path": "$.id", "as_variable": "order_id"}],
+        }
+    )
+    producer.scenario_file = "producer.json"
+    consumer = make_scenario(
+        document_overrides={
+            "scenario_id": "consumer",
+            "endpoint": {"method": "GET", "path": "/orders/{{order_id}}"},
+            "payload": None,
+            "correlation": None,
+            "api_checks": [
+                {"id": "http_status", "field": "status_code", "operator": "equals", "expected_value": 200}
+            ],
+        }
+    )
+    consumer.scenario_file = "consumer.json"
+
+    environment = {
+        "environment_name": "dev",
+        "timezone": "America/Sao_Paulo",
+        "api": {"base_url": "https://example.test/api"},
+    }
+
+    output_path = run_request(
+        environment=environment,
+        scenarios=[producer, consumer],
+        variables={"order_id": None},
+        output_dir=tmp_path,
+    )
+
+    record = json.loads(output_path.read_text())
+    results = record["results"]
+    assert len(results) == 2
+
+    producer_result, consumer_result = results
+    assert producer_result["extraction_results"] == [
+        {"json_path": "$.id", "as_variable": "order_id", "success": True, "error": None}
+    ]
+    assert consumer_result["request_sent"]["path"] == "/orders/extracted-order-id"
+
+
+@responses.activate
 def test_poll_services_info_isolates_failures():
     responses.add(responses.GET, "https://good.test/info", json={"version": "1.0", "status": "online"}, status=200)
     responses.add(responses.GET, "https://bad.test/info", body=ConnectionError("down"))

@@ -1,6 +1,7 @@
 import json
 import sys
 import types
+from datetime import date, datetime, timezone
 from unittest.mock import MagicMock
 
 from thomas.cli import BANNER, main
@@ -429,3 +430,178 @@ def test_validate_oracle_reuses_one_connection_across_multiple_scenarios(tmp_pat
     assert exit_code == 0
     connect_mock.assert_called_once()
     assert connection.closed is True
+
+
+# --- Feature 016: datetime/date serialization in `obtained` (issue #8) ---
+
+
+def test_validate_datetime_obtained_persisted_as_iso_string(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    cursor = _FakeCursor(
+        description=[("STATUS",)],
+        rows=[(datetime(2026, 9, 16, 14, 30, tzinfo=timezone.utc),)],
+    )
+    connection = _FakeConnection(cursor)
+    _install_fake_oracledb(monkeypatch, MagicMock(return_value=connection))
+
+    write_json(tmp_path / "sc1.json", ORACLE_SCENARIO)
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, ORACLE_ENVIRONMENT)
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+
+    exit_code = main([
+        "validate",
+        "--execution", str(exec_path),
+        "--environment", str(env_path),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    assert exit_code == 0
+    record = json.loads(exec_path.read_text())
+    rounds = record["results"][0]["validation_rounds"]
+    assert rounds[0]["results"][0]["obtained"] == "2026-09-16T14:30:00+00:00"
+
+
+def test_validate_date_obtained_persisted_as_iso_string(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    cursor = _FakeCursor(
+        description=[("STATUS",)],
+        rows=[(date(2026, 9, 16),)],
+    )
+    connection = _FakeConnection(cursor)
+    _install_fake_oracledb(monkeypatch, MagicMock(return_value=connection))
+
+    write_json(tmp_path / "sc1.json", ORACLE_SCENARIO)
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, ORACLE_ENVIRONMENT)
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+
+    exit_code = main([
+        "validate",
+        "--execution", str(exec_path),
+        "--environment", str(env_path),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    assert exit_code == 0
+    record = json.loads(exec_path.read_text())
+    rounds = record["results"][0]["validation_rounds"]
+    assert rounds[0]["results"][0]["obtained"] == "2026-09-16"
+
+
+def test_validate_nested_datetime_in_obtained_persisted_as_iso_strings(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    class _NestedFakeConnector:
+        def __init__(self, config):
+            self.config = config
+
+        def connect(self):
+            pass
+
+        def disconnect(self):
+            pass
+
+        def describe_query(self, validation):
+            return f"lookup: {validation['id']}"
+
+        def run_validation(self, validation, correlation_id, request_timestamp):
+            return {
+                "created_at": datetime(2026, 9, 16, 14, 30, tzinfo=timezone.utc),
+                "meta": {"updated_at": date(2026, 9, 16)},
+            }
+
+    monkeypatch.setattr(
+        "thomas.connectors.fake.FakeConnector.run_validation",
+        _NestedFakeConnector.run_validation,
+    )
+
+    write_json(tmp_path / "sc1.json", SCENARIO)
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, ENVIRONMENT)
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+
+    exit_code = main([
+        "validate",
+        "--execution", str(exec_path),
+        "--environment", str(env_path),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    assert exit_code == 0
+    record = json.loads(exec_path.read_text())
+    obtained = record["results"][0]["validation_rounds"][0]["results"][0]["obtained"]
+    assert obtained == {
+        "created_at": "2026-09-16T14:30:00+00:00",
+        "meta": {"updated_at": "2026-09-16"},
+    }
+    assert record["results"][0]["validation_rounds"][0]["results"][0]["field"] == "balance"
+
+
+def test_validate_no_temporal_values_output_unchanged(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    write_json(tmp_path / "sc1.json", SCENARIO)
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, ENVIRONMENT)
+    exec_path = tmp_path / "execution.json"
+    write_json(exec_path, EXECUTION_RECORD)
+
+    exit_code = main([
+        "validate",
+        "--execution", str(exec_path),
+        "--environment", str(env_path),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    assert exit_code == 0
+    record = json.loads(exec_path.read_text())
+    rounds = record["results"][0]["validation_rounds"]
+    assert len(rounds) == 1
+    assert rounds[0]["results"][0]["obtained"] == 150.0
+    assert rounds[0]["results"][0]["passed"] is True
+    assert record["results"][0]["final_status"] == "passed"
+
+
+def test_validate_prior_round_with_iso_datetime_strings_untouched_new_round_appended(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    write_json(tmp_path / "sc1.json", SCENARIO)
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, ENVIRONMENT)
+    exec_path = tmp_path / "execution.json"
+    prior_round = {
+        "timestamp": "2026-09-01T10:00:00-03:00",
+        "environment_used": "dev",
+        "results": [
+            {
+                "id": "v1",
+                "connector": "fake_main",
+                "field": "balance",
+                "expected": 150.0,
+                "obtained": "2026-09-01T10:00:00+00:00",
+                "operator": "equals",
+                "passed": False,
+                "technical_error": None,
+            }
+        ],
+        "round_result": "failed",
+    }
+    execution_record = json.loads(json.dumps(EXECUTION_RECORD))
+    execution_record["results"][0]["validation_rounds"] = [prior_round]
+    write_json(exec_path, execution_record)
+
+    exit_code = main([
+        "validate",
+        "--execution", str(exec_path),
+        "--environment", str(env_path),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    assert exit_code == 0
+    record = json.loads(exec_path.read_text())
+    rounds = record["results"][0]["validation_rounds"]
+    assert len(rounds) == 2
+    assert rounds[0] == prior_round
+    assert rounds[1]["results"][0]["obtained"] == 150.0

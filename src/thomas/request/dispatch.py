@@ -21,6 +21,7 @@ from thomas.core.execution_record import (
     build_execution_record,
     write_execution_record,
 )
+from thomas.core.extraction import resolve_extract_variables
 from thomas.core.loading import LoadedScenario
 from thomas.core.variables import resolve_payload
 from thomas.operators import engine
@@ -117,8 +118,13 @@ def _evaluate_api_checks(
     return results
 
 
-def _compute_final_status(api_result: str, correlation_error: str | None, has_validations: bool) -> str:
-    if api_result == "failed" or correlation_error is not None:
+def _compute_final_status(
+    api_result: str,
+    correlation_error: str | None,
+    has_validations: bool,
+    extraction_failed: bool = False,
+) -> str:
+    if api_result == "failed" or correlation_error is not None or extraction_failed:
         return "failed"
     if has_validations:
         return "awaiting_validation"
@@ -261,8 +267,34 @@ def dispatch_scenario(
         variables=variables,
     )
 
+    extract_variables = document.get("extract_variables")
+    if extract_variables:
+        if api_result == "passed":
+            extraction_results = resolve_extract_variables(
+                extract_variables,
+                response_body=body,
+                variables=variables,
+                scenario_file=scenario.scenario_file,
+            )
+        else:
+            extraction_results = [
+                {
+                    "json_path": item["json_path"],
+                    "as_variable": item["as_variable"],
+                    "success": False,
+                    "error": "extraction skipped: scenario request did not succeed",
+                }
+                for item in extract_variables
+            ]
+    else:
+        extraction_results = []
+
+    extraction_failed = any(not entry["success"] for entry in extraction_results)
+
     has_validations = bool(document.get("validations"))
-    final_status = _compute_final_status(api_result, correlation_result.correlation_error, has_validations)
+    final_status = _compute_final_status(
+        api_result, correlation_result.correlation_error, has_validations, extraction_failed
+    )
 
     # T019: Include resolved headers in request_sent for traceability
     return ScenarioResult(
@@ -281,6 +313,7 @@ def dispatch_scenario(
         api_result=api_result,
         final_status=final_status,
         description=document.get("description"),
+        extraction_results=extraction_results,
     )
 
 
@@ -326,6 +359,8 @@ def run_request(
         results.append(result)
         if progress_callback is not None:
             progress_callback(scenario, result)
+        if any(not entry["success"] for entry in result.extraction_results):
+            break
 
     record = build_execution_record(
         environment_name=environment["environment_name"],

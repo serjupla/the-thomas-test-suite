@@ -15,6 +15,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from thomas import __version__ as THOMAS_VERSION
+from thomas.core.json_encoding import ExecutionRecordEncoder
 
 
 def build_execution_id(now: datetime) -> str:
@@ -39,6 +40,7 @@ class ScenarioResult:
     final_status: str
     validation_rounds: list[dict[str, Any]] = field(default_factory=list)
     description: str | None = None
+    extraction_results: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -58,6 +60,7 @@ class ScenarioResult:
             "validation_rounds": self.validation_rounds,
             "final_status": self.final_status,
             "description": self.description,
+            "extraction_results": self.extraction_results,
         }
 
 
@@ -100,5 +103,5 @@ def build_execution_record(
 def write_execution_record(record: dict[str, Any], output_dir: Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{record['execution_id']}.json"
-    output_path.write_text(json.dumps(record, indent=2))
+    output_path.write_text(json.dumps(record, indent=2, cls=ExecutionRecordEncoder))
     return output_path

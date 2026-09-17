@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import logging
 import random
 import sys
@@ -25,7 +26,7 @@ from thomas.core.loading import (
     load_variables,
     resolve_environment_path,
 )
-from thomas.core.variables import find_undefined_references
+from thomas.core.variables import find_undefined_references, save_variables
 from thomas.request.dispatch import run_request
 from thomas.validate.orchestrator import run_validate
 from thomas.validate.preflight import check_missing_connectors
@@ -184,6 +185,7 @@ def run_request_command(args: argparse.Namespace) -> int:
         except ThomasFileError as exc:
             console.print(f"[red]Invalid variables file:[/red] {exc}")
             return 1
+    variables_snapshot = copy.deepcopy(variables)
 
     scenarios_path = args.folder or args.scenario
     try:
@@ -203,6 +205,19 @@ def run_request_command(args: argparse.Namespace) -> int:
         console.print(f"[red]Undefined variable reference(s):[/red] {details}")
         return 1
 
+    predeclaration_errors: list[tuple[str, str]] = []
+    for scenario in scenarios:
+        for item in scenario.document.get("extract_variables") or []:
+            if item["as_variable"] not in variables:
+                predeclaration_errors.append((scenario.scenario_file, item["as_variable"]))
+    if predeclaration_errors:
+        details = "; ".join(
+            f"{scenario}: extract_variables target '{name}' not pre-declared in variables.json"
+            for scenario, name in predeclaration_errors
+        )
+        console.print(f"[red]Undeclared extract_variables target(s):[/red] {details}")
+        return 1
+
     secrets = _collect_credential_values(environment)
     _configure_logging(args.log_file, secrets)
 
@@ -220,6 +235,9 @@ def run_request_command(args: argparse.Namespace) -> int:
             progress_callback=on_progress,
             title=args.title,
         )
+
+    if variables_path is not None and variables != variables_snapshot:
+        save_variables(variables_path, variables)
 
     import json
 
@@ -304,6 +322,8 @@ def _print_environment_mismatch_note(args_environment: Path | None, execution_re
 def run_validate_command(args: argparse.Namespace) -> int:
     import json
 
+    from thomas.core.json_encoding import ExecutionRecordEncoder
+
     # Printed via plain print(), not console.print(): see the comment in
     # run_request_command about rich word-wrapping fixed-width ASCII art.
     print(BANNER)
@@ -354,7 +374,7 @@ def run_validate_command(args: argparse.Namespace) -> int:
             console.print(f"[red]{escape(str(exc))}[/red]")
             return 1
 
-    args.execution.write_text(json.dumps(updated_record, indent=2))
+    args.execution.write_text(json.dumps(updated_record, indent=2, cls=ExecutionRecordEncoder))
 
     new_rounds = [
         result["validation_rounds"][-1]

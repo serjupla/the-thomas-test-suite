@@ -93,7 +93,20 @@
             "type": "array",
             "items": { "type": "object" }
           },
-          "final_status": { "enum": ["passed", "failed", "awaiting_validation"] }
+          "final_status": { "enum": ["passed", "failed", "awaiting_validation"] },
+          "extraction_results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["json_path", "as_variable", "success", "error"],
+              "properties": {
+                "json_path": { "type": "string" },
+                "as_variable": { "type": "string" },
+                "success": { "type": "boolean" },
+                "error": { "type": ["string", "null"] }
+              }
+            }
+          }
         }
       }
     }

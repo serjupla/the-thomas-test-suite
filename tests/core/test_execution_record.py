@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from importlib import resources
 
 import jsonschema
@@ -10,6 +10,7 @@ from thomas.core.execution_record import (
     build_execution_record,
     write_execution_record,
 )
+from thomas.core.json_encoding import ExecutionRecordEncoder
 
 
 def make_result(**overrides) -> ScenarioResult:
@@ -213,6 +214,49 @@ def test_execution_record_with_metadata_validates_against_schema():
     )
 
     jsonschema.validate(record, load_execution_schema())
+
+
+# Feature 016: ExecutionRecordEncoder tests
+
+
+def test_encoder_converts_aware_datetime_to_iso_with_offset():
+    value = datetime(2026, 9, 16, 14, 30, tzinfo=timezone.utc)
+    assert json.dumps(value, cls=ExecutionRecordEncoder) == '"2026-09-16T14:30:00+00:00"'
+
+
+def test_encoder_converts_naive_datetime_to_iso_without_offset():
+    value = datetime(2026, 9, 16, 14, 30)  # noqa: DTZ001 -- intentionally naive
+    assert json.dumps(value, cls=ExecutionRecordEncoder) == '"2026-09-16T14:30:00"'
+
+
+def test_encoder_converts_date_to_iso():
+    value = date(2026, 9, 16)
+    assert json.dumps(value, cls=ExecutionRecordEncoder) == '"2026-09-16"'
+
+
+def test_encoder_converts_nested_datetime_inside_dict_and_list():
+    payload = {
+        "created_at": datetime(2026, 9, 16, 14, 30, tzinfo=timezone.utc),
+        "meta": {"updated_at": date(2026, 9, 16)},
+        "history": [datetime(2026, 1, 1, 0, 0)],  # noqa: DTZ001 -- intentionally naive
+    }
+    result = json.loads(json.dumps(payload, cls=ExecutionRecordEncoder))
+    assert result == {
+        "created_at": "2026-09-16T14:30:00+00:00",
+        "meta": {"updated_at": "2026-09-16"},
+        "history": ["2026-01-01T00:00:00"],
+    }
+
+
+def test_encoder_still_raises_typeerror_for_unsupported_types():
+    class Unsupported:
+        pass
+
+    try:
+        json.dumps(Unsupported(), cls=ExecutionRecordEncoder)
+        assert False, "expected TypeError"
+    except TypeError:
+        pass
 
 
 # Feature 010: prepared_variables tests

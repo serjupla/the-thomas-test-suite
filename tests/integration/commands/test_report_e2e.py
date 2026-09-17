@@ -182,6 +182,42 @@ def _run_report(tmp_path, environment, subdir="", execution_record=None):
     return html_files[0].read_text()
 
 
+# --- Feature 016: reads execution records persisted after the datetime-serialization fix ---
+
+
+def test_report_renders_iso_temporal_obtained_values_across_multiple_rounds(tmp_path):
+    record = _build_execution_record()
+    record["results"][2]["validation_rounds"] = [
+        _round(
+            "2026-09-16T10:00:00-03:00",
+            [
+                _validation("v1", passed=False, obtained="2026-09-16T10:00:00+00:00", expected="SETTLED"),
+                _validation("v2", passed=True, obtained="2026-09-16"),
+            ],
+            "failed",
+        ),
+        _round(
+            "2026-09-16T14:30:00-03:00",
+            [
+                _validation("v1", passed=True, obtained="2026-09-16T14:30:00+00:00", expected="SETTLED"),
+                _validation("v2", passed=True, obtained="2026-09-16"),
+            ],
+            "passed",
+        ),
+    ]
+    html = _run_report(tmp_path, ENVIRONMENT, subdir="f016_temporal_rounds", execution_record=record)
+    soup = BeautifulSoup(html, "html.parser")
+
+    kyc_row = soup.select_one('.scenario-row[data-scenario-id="kyc_document_check"]')
+    assert kyc_row is not None
+    round_rows = kyc_row.select("details.round-row")
+    assert len(round_rows) == 2
+    joined_text = " ".join(r.get_text() for r in round_rows)
+    assert "2026-09-16T10:00:00+00:00" in joined_text
+    assert "2026-09-16T14:30:00+00:00" in joined_text
+    assert "2026-09-16" in joined_text
+
+
 # --- US1: Dashboard ---
 
 

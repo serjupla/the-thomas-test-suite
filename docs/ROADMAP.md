@@ -21,6 +21,7 @@
 | F06 | Conector DB2 | 2 | Concluído | 2026-08-08 |
 | F07 | Conector Kafka | 2 | Concluído | 2026-08-09 |
 | F08 | Conector MongoDB | 2 | Não iniciado | — |
+| F016 | Fix: falha de serialização de `datetime`/`date` em `thomas validate` (issue pública #8) | 2 | Concluído | 2026-09-16 |
 
 > Atualizar "Status" (Não iniciado / Em andamento / Concluído) e "Data de
 > conclusão" conforme cada feature avança pelo fluxo do Spec-Kit

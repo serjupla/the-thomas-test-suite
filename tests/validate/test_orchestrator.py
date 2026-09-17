@@ -1,7 +1,13 @@
 import json
+from datetime import datetime, timezone
 
 from thomas.connectors.fake import FakeConnector
-from thomas.validate.orchestrator import build_validation_round, compute_final_status, run_validate
+from thomas.validate.orchestrator import (
+    _run_single_validation,
+    build_validation_round,
+    compute_final_status,
+    run_validate,
+)
 
 # --- compute_final_status: FR-010 table ---
 
@@ -229,3 +235,32 @@ def test_unexpected_exception_during_run_validation_is_captured_per_validation(t
     scenario2_results = updated["results"][1]["validation_rounds"][0]["results"]
     assert scenario2_results[0]["technical_error"] is None
     assert scenario2_results[0]["passed"] is True
+
+
+# --- Feature 016: FR-008 — comparison uses the original datetime, unaffected by serialization ---
+
+
+def test_datetime_obtained_comparison_uses_original_datetime_not_a_string():
+    obtained_value = datetime(2026, 9, 16, 14, 30, tzinfo=timezone.utc)
+    connector = FakeConnector({"values": {"v1": obtained_value}, "failures": {}})
+    validation = {
+        "id": "v1",
+        "connector": "fake_main",
+        "field": "obtained_at",
+        "operator": "equals",
+        "expected_value": obtained_value,
+    }
+
+    result = _run_single_validation(connector, validation, "corr-1", "2026-09-16T14:30:00+00:00")
+
+    assert result["obtained"] == obtained_value
+    assert isinstance(result["obtained"], datetime)
+    assert result["passed"] is True
+
+    mismatched = _run_single_validation(
+        connector,
+        {**validation, "expected_value": obtained_value.isoformat()},
+        "corr-1",
+        "2026-09-16T14:30:00+00:00",
+    )
+    assert mismatched["passed"] is False

@@ -282,6 +282,141 @@ def test_request_command_prints_console_summary_with_correct_counts(tmp_path, mo
     assert "summary" in captured.out.lower()
 
 
+@responses.activate
+def test_request_command_persists_extracted_variables_to_disk(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    responses.add(
+        responses.POST,
+        "https://example.test/api/orders",
+        json={"id": "extracted-order-id"},
+        status=201,
+    )
+
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, VALID_ENVIRONMENT)
+    scenarios_dir = tmp_path / "scenarios"
+    scenarios_dir.mkdir()
+    write_json(
+        scenarios_dir / "a.json",
+        {**VALID_SCENARIO, "extract_variables": [{"json_path": "$.id", "as_variable": "order_id"}]},
+    )
+    variables_path = tmp_path / "variables.json"
+    write_json(variables_path, {"schema_version": 1, "variables": {"order_id": ""}})
+
+    exit_code = main([
+        "request",
+        "--environment", str(env_path),
+        "--folder", str(scenarios_dir),
+        "--variables", str(variables_path),
+        "--output", str(tmp_path / "executions"),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    assert exit_code == 0
+    written = json.loads(variables_path.read_text())
+    assert written == {"schema_version": 1, "variables": {"order_id": "extracted-order-id"}}
+
+
+@responses.activate
+def test_request_command_leaves_variables_file_untouched_when_no_extraction(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    responses.add(responses.POST, "https://example.test/api/orders", json={}, status=201)
+
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, VALID_ENVIRONMENT)
+    scenarios_dir = tmp_path / "scenarios"
+    scenarios_dir.mkdir()
+    write_json(scenarios_dir / "a.json", VALID_SCENARIO)
+    variables_path = tmp_path / "variables.json"
+    write_json(variables_path, {"schema_version": 1, "variables": {"unused": "value"}})
+    original_bytes = variables_path.read_bytes()
+
+    exit_code = main([
+        "request",
+        "--environment", str(env_path),
+        "--folder", str(scenarios_dir),
+        "--variables", str(variables_path),
+        "--output", str(tmp_path / "executions"),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    assert exit_code == 0
+    assert variables_path.read_bytes() == original_bytes
+
+
+def test_request_command_aborts_on_extract_variables_target_not_predeclared(tmp_path, capsys):
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, VALID_ENVIRONMENT)
+    scenarios_dir = tmp_path / "scenarios"
+    scenarios_dir.mkdir()
+    write_json(
+        scenarios_dir / "a.json",
+        {**VALID_SCENARIO, "extract_variables": [{"json_path": "$.id", "as_variable": "nonexistent_var"}]},
+    )
+    variables_path = tmp_path / "variables.json"
+    write_json(variables_path, {"schema_version": 1, "variables": {}})
+    output_dir = tmp_path / "executions"
+
+    exit_code = main([
+        "request",
+        "--environment", str(env_path),
+        "--folder", str(scenarios_dir),
+        "--variables", str(variables_path),
+        "--output", str(output_dir),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert "a.json" in captured.out
+    assert "nonexistent_var" in captured.out
+    assert not output_dir.exists()
+
+
+def test_request_command_batches_multiple_extract_variables_predeclaration_errors(tmp_path, capsys):
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, VALID_ENVIRONMENT)
+    scenarios_dir = tmp_path / "scenarios"
+    scenarios_dir.mkdir()
+    write_json(
+        scenarios_dir / "a.json",
+        {
+            **VALID_SCENARIO,
+            "scenario_id": "a",
+            "extract_variables": [{"json_path": "$.id", "as_variable": "missing_one"}],
+        },
+    )
+    write_json(
+        scenarios_dir / "b.json",
+        {
+            **VALID_SCENARIO,
+            "scenario_id": "b",
+            "endpoint": {"method": "POST", "path": "/orders2"},
+            "extract_variables": [{"json_path": "$.id", "as_variable": "missing_two"}],
+        },
+    )
+    variables_path = tmp_path / "variables.json"
+    write_json(variables_path, {"schema_version": 1, "variables": {}})
+    output_dir = tmp_path / "executions"
+
+    exit_code = main([
+        "request",
+        "--environment", str(env_path),
+        "--folder", str(scenarios_dir),
+        "--variables", str(variables_path),
+        "--output", str(output_dir),
+        "--log-file", str(tmp_path / "thomas.log"),
+    ])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert "a.json" in captured.out
+    assert "missing_one" in captured.out
+    assert "b.json" in captured.out
+    assert "missing_two" in captured.out
+    assert not output_dir.exists()
+
+
 def test_request_command_exit_two_on_both_folder_and_scenario(tmp_path):
     env_path = tmp_path / "dev.json"
     write_json(env_path, VALID_ENVIRONMENT)

@@ -175,6 +175,7 @@ Notes on this example:
 | `correlation.field` | Yes (if there are `validations`) | JSONPath (if source = `api_response`), field name in the payload (if source = `request_payload`), or variable name (if source = `variable`). |
 | `api_checks` | Yes (list, can be empty — not recommended) | List of checks on the HTTP response, using the operator engine. |
 | `validations` | No (list, may be omitted or empty) | List of connector-based validations, using the operator engine. |
+| `extract_variables` | No (list, `minItems: 1` when present) | Pulls values out of this scenario's own API response and writes them into the shared `variables` dict, so later scenarios in the same `thomas request` run can reference them via `{{variable}}`. See "Chaining values via `extract_variables`" below. |
 
 In `api_checks`, the field value `"status_code"` is a special value
 recognized by the engine (refers to the HTTP status code of the
@@ -185,6 +186,41 @@ In `validations`, the placeholder `:correlation_id` inside `query` is
 automatically substituted with the resolved value of `correlation` before
 execution. For Kafka, `key_filter` indicates which field of the message
 must match `correlation_id`.
+
+### Chaining values via `extract_variables`
+
+```json
+"extract_variables": [
+  { "json_path": "$.id", "as_variable": "order_id" }
+]
+```
+
+Each item has `json_path` (a JSONPath expression, same dialect/engine as
+`correlation.field`) and `as_variable` (the target variable name). Unlike
+`correlation`, `extract_variables` always reads from the scenario's own
+`api_response.body` — there is no `source` option.
+
+- `as_variable` **must already exist as a key** in the loaded
+  `variables.json` before the run starts (validated up front by `thomas
+  request`, before any HTTP request is dispatched); `extract_variables`
+  only ever updates an existing key, never creates a new one.
+- Extraction is attempted only when the scenario's own request completed
+  without a technical error **and** all of its `api_checks` passed — the
+  same success gate `correlation`'s `api_response` source relies on. If
+  the request fails technically or `api_checks` don't all pass,
+  extraction is skipped entirely (not attempted).
+- When a `json_path` resolves to multiple matches, the first match's
+  value is used (same rule as `correlation.field`).
+- If two items in the same `extract_variables` array target the same
+  `as_variable`, the later item's value wins for that scenario; a warning
+  is logged.
+- If any item's `json_path` does not resolve, that scenario's
+  `final_status` is forced to `"failed"` and **no further scenarios in
+  the run are dispatched** — items before the failing one keep their
+  successful mutation (no rollback within the scenario).
+- `correlation` and `extract_variables` are independent and can both be
+  declared on the same scenario; neither affects the other's resolution
+  or failure behavior.
 
 ---
 
@@ -301,6 +337,17 @@ roadmap item (out of current scope): support `"source": "api"` or
 `"source": "database"` per variable, with dynamic resolution during the
 preparation step.
 
+**Mutability during a `thomas request` run**: the loaded `variables`
+dict is read-only until a scenario declares `extract_variables` — from
+that point on it may be mutated in place, scenario by scenario, in
+sequential order (see "Chaining values via `extract_variables`" in §1).
+At the end of the run, `variables.json` on disk is rewritten with the
+final values **only if at least one extraction succeeded**; if no
+`extract_variables` was used anywhere, or none succeeded, the file is
+left byte-identical to what was loaded. The on-disk shape is always
+`{"schema_version": 1, "variables": <final dict>}` — no other top-level
+keys are ever added.
+
 ---
 
 ## 4. Execution Record Schema (`execution_v1.json`)
@@ -394,6 +441,16 @@ preparation step.
   message when there was an infrastructure failure (connection, timeout,
   invalid query). A validation with `technical_error` set is always
   `"passed": false`.
+- `obtained` values that are Python `datetime`/`date` in memory (e.g. an
+  Oracle/DB2 `DATE`/`TIMESTAMP` column returned as-is by the connector)
+  are persisted as ISO-8601 strings — timezone preserved when the value is
+  timezone-aware, omitted when naive — via `ExecutionRecordEncoder`
+  (`src/thomas/core/json_encoding.py`), applied at both execution-record
+  write points (`cli.py`'s `run_validate_command` and
+  `core/execution_record.py`'s `write_execution_record`). The
+  `passed`/`failed` result is computed by the operator engine against the
+  original in-memory value, before this conversion, so the comparison
+  itself is unaffected.
 
 ### Scenario result technical-failure fields (`thomas request`)
 
@@ -413,6 +470,27 @@ technical-error-vs-assertion-failure distinction used for `validations`:
   message when the request itself could not be completed (connection
   error, timeout). When set, `api_response` is `null` and `api_result` is
   `"failed"`.
+
+### `extraction_results` (`thomas request`)
+
+Each `results[]` entry also carries `extraction_results`, one entry per
+item declared in the scenario's `extract_variables` (empty array `[]`
+when the scenario declares none):
+
+```json
+"extraction_results": [
+  { "json_path": "$.id", "as_variable": "order_id", "success": true, "error": null }
+]
+```
+
+- `error` is `null` on success; otherwise a human-readable message naming
+  the offending `json_path`/`as_variable` — e.g. `"json_path '$.id' did
+  not resolve in the response body"`, or `"extraction skipped: scenario
+  request did not succeed"` when the success gate described in §1 wasn't
+  met.
+- Any entry with `"success": false` forces the scenario's `final_status`
+  to `"failed"`, the same way `correlation_error` does, and halts
+  dispatch of the rest of the run.
 
 ### Report title, scenario description, and per-check field/query (additive, no `schema_version` bump)
 
