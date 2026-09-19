@@ -5,6 +5,33 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-09-19
+
+### Added
+
+- Multiple named APIs per environment: environment files can now declare an
+  `apis` map (same shape as the legacy `api` field, plus a `default` flag)
+  as an alternative to `api`. A scenario selects its target with
+  `endpoint.api`; when omitted it resolves to the default (or legacy) API.
+  Combined with `extract_variables`, this enables multi-service flows in a
+  single `thomas request` run — for example, authenticating on an identity
+  service, using the returned token on a business API, and confirming
+  propagation on a third one.
+- The resolved API name is recorded in the execution record
+  (`request_sent.api`) and shown in the HTML report; the environment view
+  now lists every API under test.
+- Two new quickstart example scenarios (`08_extract_from_identity_service`,
+  `09_consume_on_business_api`) demonstrate the feature.
+
+### Changed
+
+- HTTP authentication headers (`Authorization`, `Cookie`, `X-Api-Key` and
+  known variants) are now masked in reports, extending the existing secret
+  masking already applied to connector settings.
+
+All changes are additive: single-API environments, scenarios without
+`endpoint.api` and older execution records keep working unchanged.
+
 ## [0.7.0] - 2026-09-17
 
 ### Added
@@ -184,6 +211,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Initial PyPI packaging under the distribution name
   `the-thomas-test-suite` (CLI command remains `thomas`).
 
+[0.8.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.4.0...v0.5.0
