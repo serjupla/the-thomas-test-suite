@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "feature": "multi_api_chaining",
+  "scenario_id": "extract_from_identity_service",
+  "description": "Demonstrates multi-API environments (Feature 018): runs against the environment's default named API (identity_service) with no endpoint.api set, then extracts a value from the response for the next scenario to consume against a different named API.",
+  "endpoint": {
+    "method": "GET",
+    "path": "/users/1"
+  },
+  "api_checks": [
+    { "id": "status_ok", "field": "status_code", "operator": "equals", "expected_value": 200 }
+  ],
+  "extract_variables": [
+    { "json_path": "$.id", "as_variable": "multi_api_user_id" }
+  ]
+}

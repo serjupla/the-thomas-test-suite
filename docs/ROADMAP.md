@@ -22,6 +22,7 @@
 | F07 | Conector Kafka | 2 | Concluído | 2026-08-09 |
 | F08 | Conector MongoDB | 2 | Não iniciado | — |
 | F016 | Fix: falha de serialização de `datetime`/`date` em `thomas validate` (issue pública #8) | 2 | Concluído | 2026-09-16 |
+| F018 | Múltiplas APIs por ambiente para cenários encadeados (`apis` nomeado, `endpoint.api`, mascaramento de headers de autenticação) | 2 | Concluído | 2026-09-18 |
 
 > Atualizar "Status" (Não iniciado / Em andamento / Concluído) e "Data de
 > conclusão" conforme cada feature avança pelo fluxo do Spec-Kit
@@ -188,3 +189,24 @@ tratamento de timeout como erro técnico.
 Implementação via `pymongo`, com o formato de validação por filtro/coleção
 específico de banco não-relacional (ver `05-connectors.md`). Última
 feature do roadmap atual.
+
+### F018 — Múltiplas APIs por ambiente para cenários encadeados
+Adiciona um mapa nomeado opcional `apis` ao schema de ambiente (mesma forma
+do `api` legado, mais um flag `default`), mutuamente exclusivo com o campo
+`api` legado, permitindo que um cenário selecione a API de destino via
+`endpoint.api` (retrocompatível: omitido resolve para a API padrão/legada).
+Habilita fluxos multi-serviço (ex.: autenticar em um serviço de identidade,
+usar o token retornado em uma API de negócio, confirmar propagação em uma
+terceira API) numa única execução de `thomas request`, reaproveitando o
+mecanismo existente de `extract_variables`/`{{variable}}` sem alteração —
+ele já opera sobre um dicionário de variáveis compartilhado, independente
+de qual API produziu ou consumiu o valor. O nome da API resolvida é
+gravado no registro de execução (`request_sent.api`) e exibido no
+relatório HTML (view de resultados e view de ambiente, agora uma lista
+`apis_under_test`). Estende o mecanismo existente de mascaramento de
+segredos de conector para também mascarar headers de autenticação HTTP
+(`Authorization`, `Cookie`, `X-Api-Key` e variantes conhecidas). Nenhuma
+mudança de `schema_version` (todos os campos novos são aditivos e
+opcionais); ambientes legados de API única, cenários sem `endpoint.api` e
+registros de execução antigos sem `request_sent.api` continuam
+funcionando sem modificação.

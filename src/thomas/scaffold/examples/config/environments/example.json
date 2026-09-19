@@ -5,9 +5,19 @@
   "timezone": "UTC",
   "report_language": "en",
   "company_logo_path": "../company-logo.svg",
-  "api": {
-    "base_url": "https://jsonplaceholder.typicode.com",
-    "timeout_seconds": 30
+  "apis": {
+    "identity_service": {
+      "base_url": "https://jsonplaceholder.typicode.com",
+      "timeout_seconds": 30,
+      "default": true
+    },
+    "business_api": {
+      "base_url": "https://jsonplaceholder.typicode.com",
+      "timeout_seconds": 30,
+      "headers": {
+        "X-Api-Key": "fictional-business-api-key"
+      }
+    }
   },
   "connectors": {
     "fake_ledger": {

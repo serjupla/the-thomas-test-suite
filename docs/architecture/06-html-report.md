@@ -140,8 +140,18 @@ HTML (not just visually collapsed) when its underlying data is absent:
 - **Identificação** (always shown): environment name, timezone, report
   language, execution id, Thomas version, start timestamp — fields not
   already shown in the header.
-- **API sob teste** (always shown): base URL, timeout, SSL verification
-  status, with custom headers in a collapsed-by-default sub-section.
+- **API sob teste** (always shown): one block per named API declared in
+  the environment (`environment_view.apis_under_test`, a list — length 1
+  for a legacy single-`api` environment, one entry per name under `apis`
+  otherwise), each showing that API's base URL, timeout, SSL verification
+  status, and a default badge when it's the environment's default API,
+  with custom headers in a collapsed-by-default sub-section (masked per
+  "Secret masking" below). The results view separately shows, per
+  request, the name of the API that request was dispatched against
+  (`scenario.detail.requisicao.api`, falling back to `"default"` for
+  execution records written before Feature 018). See
+  `docs/architecture/03-data-schemas.md` §2 "Multiple named APIs" for the
+  underlying environment schema.
 - **Serviços de informação** (omitted when none configured): per service,
   its outcome status, source, collection timestamp, and extracted field
   values, or its error if collection failed.
@@ -159,10 +169,13 @@ HTML (not just visually collapsed) when its underlying data is absent:
 
 ### Secret masking
 
-Any key/value pair — connector config field at any nesting depth, or a
-prepared variable — whose key case-insensitively contains `KEY`, `TOKEN`,
-`SECRET`, `PASSWORD`, `SENHA`, `CREDENTIAL`, `SECURITY`, or (spec 013)
-`USER`/`USUÁRIO`/`USUARIO` is masked by default (`••••••••••`) with an
+Any key/value pair — connector config field at any nesting depth, a
+prepared variable, or (Feature 018) an HTTP request header, either a
+scenario's per-request headers in the results view or a named API's
+configured headers in the environment view — whose key case-insensitively
+contains `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `SENHA`, `CREDENTIAL`,
+`SECURITY`, (spec 013) `USER`/`USUÁRIO`/`USUARIO`, or (Feature 018)
+`AUTHORIZATION`/`COOKIE` is masked by default (`••••••••••`) with an
 on-demand reveal control, styled in the same blue accent color as the
 report's copy buttons (spec 013 — previously a muted gray, now visually
 consistent with `.copy-btn`). The real value is still present in the HTML

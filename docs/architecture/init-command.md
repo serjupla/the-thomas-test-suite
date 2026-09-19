@@ -155,6 +155,26 @@ Located in `examples/scenarios/quickstart/`:
 
 Each scenario uses variable substitution (`{{post_title}}`, `{{post_body}}`, `{{user_id}}`) from `examples/config/variables.example.json`. Each scenario's `description` field states which capability it demonstrates.
 
+### Multi-API example (Feature 018)
+
+`examples/config/environments/example.json` declares two named APIs
+(`apis`) against the same public demo host: `identity_service` (the
+default) and `business_api` (with an `X-Api-Key` header, demonstrating
+header masking in the HTML report). Scenarios without `endpoint.api` use
+the default; two additional quickstart scenarios exercise the feature:
+
+- **08_extract_from_identity_service.json**: `GET /users/1` against the
+  default API, extracting `multi_api_user_id` via `extract_variables`.
+- **09_consume_on_business_api.json**: `GET /posts?userId={{multi_api_user_id}}`,
+  explicitly targeting the non-default `business_api` via `endpoint.api`,
+  consuming the value extracted by scenario 08 across different APIs.
+
+Because these live in the same folder and environment as 01-07, a single
+`thomas request --folder examples/scenarios` run exercises every bundled
+capability (request, `fake`-connector validation, `extract_variables`
+chaining, multiple named APIs). The legacy single-`api` environment shape
+remains supported (see `config/environments/example.json.dist`).
+
 ## Error Handling
 
 All error paths result in:

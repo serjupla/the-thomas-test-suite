@@ -29,7 +29,9 @@ class TestInitExamples:
 
             data = json.loads(example_env.read_text())
             assert data["schema_version"] == 1
-            assert data["api"]["base_url"] == "https://jsonplaceholder.typicode.com"
+            assert "api" not in data
+            assert data["apis"]["identity_service"]["default"] is True
+            assert data["apis"]["business_api"]["base_url"] == "https://jsonplaceholder.typicode.com"
             assert data["connectors"]["fake_ledger"]["type"] == "fake"
 
     def test_scaffold_creates_example_scenarios(self):

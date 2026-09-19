@@ -20,7 +20,8 @@
         "headers": {
           "type": "object",
           "additionalProperties": { "type": "string" }
-        }
+        },
+        "api": { "type": "string", "minLength": 1 }
       }
     },
     "payload": { "type": "object" },

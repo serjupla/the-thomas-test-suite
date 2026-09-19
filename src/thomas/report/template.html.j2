@@ -884,6 +884,8 @@
 
 {% macro copy_button(target_id, extra_class="", extra_style="") %}<button type="button" class="copy-btn{{ (' ' ~ extra_class) if extra_class else '' }}"{% if extra_style %} style="{{ extra_style }}"{% endif %} data-copy-target="{{ target_id }}" aria-label="{{ strings.copy_label }}" title="{{ strings.copy_label }}"><svg class="copy-icon-idle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="13" height="13" rx="2"/><rect x="8" y="8" width="13" height="13" rx="2"/></svg><svg class="copy-icon-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></button>{% endmacro %}
 
+{% macro masked_row_value(row) %}{% if row.is_never_show %}<span class="not-displayed-badge">{{ strings.not_displayed_label }}</span>{% elif row.is_sensitive %}<div class="sensitive-value"><span class="mask-value" data-real-value="{{ row.value }}" data-masked-value="{{ row.value_masked }}" data-empty-placeholder="{{ strings.no_value_placeholder }}">{{ row.value_masked }}</span><button type="button" class="reveal-btn" data-label-show="{{ strings.reveal_label }}" data-label-hide="{{ strings.hide_label }}" aria-label="{{ strings.reveal_label }}" title="{{ strings.reveal_label }}"><svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg><svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-7-11-7a17.7 17.7 0 0 1 4.22-5.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a17.7 17.7 0 0 1-2.16 3.19"/><path d="M10.58 10.58a2 2 0 1 0 2.83 2.83"/><path d="M1 1l22 22"/></svg></button></div>{% else %}{{ row.value }}{% endif %}{% endmacro %}
+
 {% macro scenario_row(scenario, tag_value, view_id) %}
 {% set uid = scenario.scenario_id ~ "-" ~ view_id %}
 <div class="scenario-row" data-scenario-id="{{ scenario.scenario_id }}" data-status="{{ scenario.final_status }}" data-name="{{ scenario.scenario_id|lower }}">
@@ -902,12 +904,13 @@
     <details class="detail-section">
       <summary>{{ strings.section_requisicao }} <span class="detail-section-meta">{{ scenario.detail.requisicao.method }} {{ scenario.detail.requisicao.path }}</span></summary>
       <div class="detail-section-body">
+        <div class="detail-meta-row">{{ strings.col_api }}: <code>{{ scenario.detail.requisicao.api }}</code></div>
         <div class="detail-meta-row">{{ strings.correlation_id_label }}: <code>{{ scenario.detail.requisicao.correlation_id or strings.no_value_placeholder }}</code></div>
         {% if scenario.detail.requisicao.headers %}
         <details class="sub-collapsible">
           <summary>{{ strings.headers_label }} ({{ scenario.detail.requisicao.headers|length }})</summary>
           <table class="kv-table"><tbody>
-            {% for key, value in scenario.detail.requisicao.headers.items() %}<tr><td>{{ key }}</td><td>{{ value }}</td></tr>{% endfor %}
+            {% for row in scenario.detail.requisicao.headers %}<tr><td>{{ row.key }}</td><td>{{ masked_row_value(row) }}</td></tr>{% endfor %}
           </tbody></table>
         </details>
         {% endif %}
@@ -1143,22 +1146,24 @@
     </div>
   </div>
 
+  {% for api in environment_view.apis_under_test %}
   <div class="env-block">
-    <h3>{{ strings.env_api_title }}</h3>
+    <h3>{{ strings.env_api_title }}{% if environment_view.apis_under_test|length > 1 %}: {{ api.name }}{% if api.is_default %} ({{ strings.env_field_api_name_default }}){% endif %}{% endif %}</h3>
     <div class="env-inline-fields">
-      <div><span class="env-field-label">{{ strings.env_field_base_url }}</span><span class="env-field-value">{{ environment_view.api_under_test.base_url }}</span></div>
-      <div><span class="env-field-label">{{ strings.env_field_timeout }}</span><span class="env-field-value">{{ environment_view.api_under_test.timeout_seconds }}s</span></div>
-      <div><span class="env-field-label">{{ strings.env_field_ssl_verify }}</span><span class="env-field-value {{ 'ssl-ok' if environment_view.api_under_test.ssl_verify else 'ssl-off' }}">{{ strings.env_ssl_yes if environment_view.api_under_test.ssl_verify else strings.env_ssl_no }}</span></div>
+      <div><span class="env-field-label">{{ strings.env_field_base_url }}</span><span class="env-field-value">{{ api.base_url }}</span></div>
+      <div><span class="env-field-label">{{ strings.env_field_timeout }}</span><span class="env-field-value">{{ api.timeout_seconds }}s</span></div>
+      <div><span class="env-field-label">{{ strings.env_field_ssl_verify }}</span><span class="env-field-value {{ 'ssl-ok' if api.ssl_verify else 'ssl-off' }}">{{ strings.env_ssl_yes if api.ssl_verify else strings.env_ssl_no }}</span></div>
     </div>
-    {% if environment_view.api_under_test.headers %}
+    {% if api.headers %}
     <details class="sub-collapsible">
-      <summary>{{ strings.headers_label }} ({{ environment_view.api_under_test.headers|length }})</summary>
+      <summary>{{ strings.headers_label }} ({{ api.headers|length }})</summary>
       <table class="kv-table"><tbody>
-        {% for header in environment_view.api_under_test.headers %}<tr><td>{{ header.key }}</td><td>{{ header.value }}</td></tr>{% endfor %}
+        {% for row in api.headers %}<tr><td>{{ row.key }}</td><td>{{ masked_row_value(row) }}</td></tr>{% endfor %}
       </tbody></table>
     </details>
     {% endif %}
   </div>
+  {% endfor %}
 
   {% if environment_view.services_info %}
   <div class="env-block">

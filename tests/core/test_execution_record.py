@@ -315,3 +315,44 @@ def test_execution_record_with_prepared_variables_validates_against_schema():
     )
 
     jsonschema.validate(record, load_execution_schema())
+
+
+# Feature 018: Multiple APIs per environment
+
+
+def test_scenario_result_request_sent_api_round_trips_through_to_dict():
+    result = make_result(request_sent={"method": "POST", "path": "/orders", "payload": {}, "api": "business_api"})
+
+    as_dict = result.to_dict()
+
+    assert as_dict["request_sent"]["api"] == "business_api"
+
+
+def test_scenario_result_request_sent_api_round_trips_through_build_execution_record():
+    record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result(request_sent={"method": "POST", "path": "/orders", "payload": {}, "api": "business_api"})],
+    )
+
+    jsonschema.validate(record, load_execution_schema())
+    assert record["results"][0]["request_sent"]["api"] == "business_api"
+
+
+def test_older_format_record_without_request_sent_api_does_not_raise():
+    """Records written by a pre-feature Thomas version lack request_sent.api;
+    schema validation must not require it (FR-011)."""
+    older_record = build_execution_record(
+        environment_name="dev",
+        timezone_name="America/Sao_Paulo",
+        start_time=datetime(2026, 7, 25, 14, 30, tzinfo=timezone.utc),
+        included_scenarios=["a.json"],
+        services_info=[],
+        results=[make_result()],  # request_sent has no "api" key
+    )
+
+    jsonschema.validate(older_record, load_execution_schema())
+    assert "api" not in older_record["results"][0]["request_sent"]

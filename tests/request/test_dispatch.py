@@ -1,9 +1,10 @@
 import json
 
+import pytest
 import responses
 from requests.exceptions import ConnectionError
 
-from thomas.core.loading import LoadedScenario
+from thomas.core.loading import LoadedScenario, ThomasFileError
 from thomas.request.dispatch import (
     _merge_headers,
     _resolve_headers,
@@ -42,6 +43,7 @@ def test_dispatch_scenario_happy_path():
 
     result = dispatch_scenario(
         make_scenario(),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -66,6 +68,7 @@ def test_dispatch_scenario_captures_scenario_description_when_present():
 
     result = dispatch_scenario(
         make_scenario(document_overrides={"description": "A valid transfer must be settled"}),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -86,6 +89,7 @@ def test_dispatch_scenario_description_is_none_when_absent():
 
     result = dispatch_scenario(
         make_scenario(),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -156,6 +160,7 @@ def test_dispatch_scenario_failing_api_check():
 
     result = dispatch_scenario(
         make_scenario(),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -179,6 +184,7 @@ def test_dispatch_scenario_awaiting_validation():
 
     result = dispatch_scenario(
         make_scenario(document_overrides={"validations": [{"id": "x"}]}),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -197,6 +203,7 @@ def test_dispatch_scenario_network_technical_failure():
 
     result = dispatch_scenario(
         make_scenario(),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -224,6 +231,7 @@ def test_dispatch_scenario_correlation_failure_forces_failed_status():
                 {"id": "http_status", "field": "status_code", "operator": "equals", "expected_value": 201}
             ],
         }),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -250,6 +258,7 @@ def test_dispatch_scenario_correlation_from_variable():
                 "correlation": {"source": "variable", "field": "request_id"},
             }
         ),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={"request_id": "req-abc-123"},
@@ -279,6 +288,7 @@ def test_dispatch_scenario_resolves_variables_in_path():
                 ],
             }
         ),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={"user_id": "12345"},
@@ -305,6 +315,7 @@ def test_dispatch_scenario_resolves_variables_in_api_checks():
                 ],
             }
         ),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={"expected_status": 201},
@@ -372,6 +383,184 @@ def test_run_request_chains_extracted_variable_across_scenarios(tmp_path):
         {"json_path": "$.id", "as_variable": "order_id", "success": True, "error": None}
     ]
     assert consumer_result["request_sent"]["path"] == "/orders/extracted-order-id"
+
+
+# Feature 018: Multiple APIs per environment
+
+MULTI_API_ENVIRONMENT = {
+    "environment_name": "dev",
+    "timezone": "America/Sao_Paulo",
+    "apis": {
+        "identity_service": {
+            "base_url": "https://identity.test/api",
+            "default": True,
+            "headers": {"X-Identity-Key": "id-key"},
+        },
+        "business_api": {
+            "base_url": "https://business.test/api",
+            "headers": {"X-Business-Key": "biz-key"},
+        },
+    },
+}
+
+
+@responses.activate
+def test_dispatch_scenario_resolves_to_named_api_base_url_and_headers():
+    responses.add(
+        responses.POST,
+        "https://business.test/api/orders",
+        json={"id": "abc-123", "status": "PENDING"},
+        status=201,
+    )
+
+    result = dispatch_scenario(
+        make_scenario(),
+        api_name="business_api",
+        base_url="https://business.test/api",
+        timeout_seconds=30,
+        variables={},
+        default_headers={"X-Business-Key": "biz-key"},
+    )
+
+    assert result.request_sent["api"] == "business_api"
+    assert responses.calls[0].request.headers["X-Business-Key"] == "biz-key"
+
+
+@responses.activate
+def test_dispatch_scenario_without_endpoint_api_resolves_to_default(tmp_path):
+    responses.add(
+        responses.POST,
+        "https://identity.test/api/orders",
+        json={"id": "abc-123", "status": "PENDING"},
+        status=201,
+    )
+
+    output_path = run_request(
+        environment=MULTI_API_ENVIRONMENT,
+        scenarios=[make_scenario()],
+        variables={},
+        output_dir=tmp_path,
+    )
+
+    record = json.loads(output_path.read_text())
+    assert record["results"][0]["request_sent"]["api"] == "identity_service"
+    assert responses.calls[0].request.headers["X-Identity-Key"] == "id-key"
+
+
+@responses.activate
+def test_run_request_multi_api_legacy_environment_resolves_to_default_name(tmp_path):
+    responses.add(
+        responses.POST,
+        "https://example.test/api/orders",
+        json={"id": "abc-123", "status": "PENDING"},
+        status=201,
+    )
+    environment = {
+        "environment_name": "dev",
+        "timezone": "America/Sao_Paulo",
+        "api": {"base_url": "https://example.test/api"},
+    }
+
+    output_path = run_request(
+        environment=environment,
+        scenarios=[make_scenario()],
+        variables={},
+        output_dir=tmp_path,
+    )
+
+    record = json.loads(output_path.read_text())
+    assert record["results"][0]["request_sent"]["api"] == "default"
+
+
+@responses.activate
+def test_run_request_chains_variable_across_different_named_apis(tmp_path):
+    """A variable extracted from a request against one named API is available
+    to a subsequent request dispatched against a different named API — no
+    dispatch.py code path change is required for the variable mechanism
+    itself (research.md item 9)."""
+    responses.add(
+        responses.POST,
+        "https://identity.test/api/orders",
+        json={"id": "extracted-order-id", "status": "PENDING"},
+        status=201,
+    )
+    responses.add(
+        responses.GET,
+        "https://business.test/api/orders/extracted-order-id",
+        json={"status": "CONFIRMED"},
+        status=200,
+    )
+
+    producer = make_scenario(
+        document_overrides={
+            "scenario_id": "producer",
+            "endpoint": {"method": "POST", "path": "/orders", "api": "identity_service"},
+            "extract_variables": [{"json_path": "$.id", "as_variable": "order_id"}],
+        }
+    )
+    producer.scenario_file = "producer.json"
+    consumer = make_scenario(
+        document_overrides={
+            "scenario_id": "consumer",
+            "endpoint": {"method": "GET", "path": "/orders/{{order_id}}", "api": "business_api"},
+            "payload": None,
+            "correlation": None,
+            "api_checks": [
+                {"id": "http_status", "field": "status_code", "operator": "equals", "expected_value": 200}
+            ],
+        }
+    )
+    consumer.scenario_file = "consumer.json"
+
+    output_path = run_request(
+        environment=MULTI_API_ENVIRONMENT,
+        scenarios=[producer, consumer],
+        variables={"order_id": None},
+        output_dir=tmp_path,
+    )
+
+    record = json.loads(output_path.read_text())
+    results = record["results"]
+    producer_result, consumer_result = results
+    assert producer_result["request_sent"]["api"] == "identity_service"
+    assert consumer_result["request_sent"]["api"] == "business_api"
+    assert consumer_result["request_sent"]["path"] == "/orders/extracted-order-id"
+
+
+def test_run_request_scenario_with_undeclared_api_fails_before_dispatch(tmp_path, monkeypatch):
+    """A scenario referencing an API name absent from the environment's `apis`
+    must raise a pre-flight error naming the invalid API name, the scenario
+    file, and scenario_id — and must never attempt the HTTP call (FR-005)."""
+    called = False
+
+    def _fail_if_called(*args, **kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("requests.request must not be invoked for an undeclared API")
+
+    monkeypatch.setattr("thomas.request.dispatch.requests.request", _fail_if_called)
+
+    scenario = make_scenario(
+        document_overrides={
+            "scenario_id": "targets_ghost_api",
+            "endpoint": {"method": "POST", "path": "/orders", "api": "ghost_api"},
+        }
+    )
+    scenario.scenario_file = "targets_ghost_api.json"
+
+    with pytest.raises(ThomasFileError) as exc_info:
+        run_request(
+            environment=MULTI_API_ENVIRONMENT,
+            scenarios=[scenario],
+            variables={},
+            output_dir=tmp_path,
+        )
+
+    assert not called
+    message = str(exc_info.value)
+    assert "ghost_api" in message
+    assert "targets_ghost_api.json" in message
+    assert "targets_ghost_api" in message
 
 
 @responses.activate
@@ -453,6 +642,7 @@ def test_dispatch_scenario_with_ssl_verify_false():
 
     result = dispatch_scenario(
         make_scenario(),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -475,6 +665,7 @@ def test_dispatch_scenario_with_ssl_verify_true_default():
 
     result = dispatch_scenario(
         make_scenario(),
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -557,6 +748,7 @@ def test_dispatch_scenario_with_endpoint_headers(sample_scenario_with_headers):
 
     result = dispatch_scenario(
         sample_scenario_with_headers,
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -582,6 +774,7 @@ def test_dispatch_scenario_records_resolved_headers(sample_scenario_with_variabl
 
     result = dispatch_scenario(
         sample_scenario_with_variable_headers,
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables=sample_variables_for_headers,
@@ -605,6 +798,7 @@ def test_dispatch_scenario_without_headers_backward_compatibility(sample_scenari
 
     result = dispatch_scenario(
         sample_scenario_without_headers,
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -661,6 +855,7 @@ def test_dispatch_scenario_applies_default_headers(sample_scenario_without_heade
     env_headers = sample_environment_with_api_headers["api"]["headers"]
     result = dispatch_scenario(
         sample_scenario_without_headers,
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -687,6 +882,7 @@ def test_dispatch_scenario_merge_precedence(sample_scenario_with_headers, sample
     # Scenario has same keys but different values
     result = dispatch_scenario(
         sample_scenario_with_headers,
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -719,6 +915,7 @@ def test_dispatch_scenario_resolve_environment_headers_variables(sample_scenario
 
     result = dispatch_scenario(
         sample_scenario_without_headers,
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables=variables,
@@ -790,6 +987,7 @@ def test_dispatch_scenario_with_env_and_scenario_headers_both_present(sample_sce
 
     result = dispatch_scenario(
         sample_scenario_with_headers,
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},
@@ -875,6 +1073,7 @@ def test_scenario_env_and_service_headers_all_combined(
     # Dispatch scenario with env headers
     scenario_result = dispatch_scenario(
         sample_scenario_with_headers,
+        api_name="default",
         base_url="https://example.test/api",
         timeout_seconds=30,
         variables={},

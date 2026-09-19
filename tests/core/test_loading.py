@@ -8,6 +8,7 @@ from thomas.core.loading import (
     load_environment,
     load_scenarios,
     load_variables,
+    resolve_apis,
     resolve_environment_path,
 )
 
@@ -274,3 +275,129 @@ def test_resolve_environment_path_raises_on_multiple_matches(tmp_path):
 def test_resolve_environment_path_raises_when_directory_missing(tmp_path):
     with pytest.raises(ThomasFileError):
         resolve_environment_path("internet-tests", tmp_path)
+
+
+# Feature 018: Multiple APIs per environment
+
+MULTI_API_ENVIRONMENT = {
+    "schema_version": 1,
+    "environment_name": "dev",
+    "system_name": "Example System",
+    "timezone": "America/Sao_Paulo",
+    "apis": {
+        "identity_service": {
+            "base_url": "https://identity.test/api",
+            "default": True,
+        },
+        "business_api": {
+            "base_url": "https://business.test/api",
+            "headers": {"X-Api-Key": "secret"},
+        },
+    },
+}
+
+
+def test_load_environment_multi_api_valid(tmp_path):
+    env_path = tmp_path / "dev.json"
+    write_json(env_path, MULTI_API_ENVIRONMENT)
+
+    document = load_environment(env_path)
+
+    assert set(document["apis"].keys()) == {"identity_service", "business_api"}
+
+
+def test_load_environment_rejects_api_and_apis_both_present(tmp_path):
+    env_path = tmp_path / "dev.json"
+    env_data = {**MULTI_API_ENVIRONMENT, "api": VALID_ENVIRONMENT["api"]}
+    write_json(env_path, env_data)
+
+    with pytest.raises(ThomasFileError) as exc_info:
+        load_environment(env_path)
+
+    message = str(exc_info.value)
+    assert "api" in message and "apis" in message
+
+
+def test_load_environment_rejects_apis_with_no_default(tmp_path):
+    env_path = tmp_path / "dev.json"
+    env_data = {
+        **MULTI_API_ENVIRONMENT,
+        "apis": {
+            name: {k: v for k, v in config.items() if k != "default"}
+            for name, config in MULTI_API_ENVIRONMENT["apis"].items()
+        },
+    }
+    write_json(env_path, env_data)
+
+    with pytest.raises(ThomasFileError) as exc_info:
+        load_environment(env_path)
+
+    assert "default" in str(exc_info.value).lower()
+
+
+def test_load_environment_rejects_apis_with_multiple_defaults(tmp_path):
+    env_path = tmp_path / "dev.json"
+    env_data = {
+        **MULTI_API_ENVIRONMENT,
+        "apis": {
+            name: {**config, "default": True}
+            for name, config in MULTI_API_ENVIRONMENT["apis"].items()
+        },
+    }
+    write_json(env_path, env_data)
+
+    with pytest.raises(ThomasFileError) as exc_info:
+        load_environment(env_path)
+
+    assert "default" in str(exc_info.value).lower()
+
+
+def test_load_environment_accepts_single_apis_entry_without_default_flag(tmp_path):
+    env_path = tmp_path / "dev.json"
+    env_data = {
+        **VALID_ENVIRONMENT,
+        "apis": {"only_api": {"base_url": "https://only.test/api"}},
+    }
+    del env_data["api"]
+    write_json(env_path, env_data)
+
+    document = load_environment(env_path)
+    resolved_apis, default_api_name = resolve_apis(document)
+
+    assert default_api_name == "only_api"
+    assert resolved_apis == {"only_api": {"base_url": "https://only.test/api"}}
+
+
+def test_resolve_apis_legacy_single_api_normalizes_to_default(tmp_path):
+    resolved_apis, default_api_name = resolve_apis(VALID_ENVIRONMENT)
+
+    assert default_api_name == "default"
+    assert resolved_apis == {"default": VALID_ENVIRONMENT["api"]}
+
+
+def test_load_environment_legacy_single_api_full_pipeline_unaffected(tmp_path):
+    """Regression (FR-008/FR-009, SC-004): a legacy single-`api` environment,
+    with no `apis` field at all, must load, validate, and normalize exactly
+    as it did before this feature — no observable behavior change."""
+    env_path = tmp_path / "legacy.json"
+    write_json(env_path, VALID_ENVIRONMENT)
+
+    document = load_environment(env_path)
+    resolved_apis, default_api_name = resolve_apis(document)
+
+    assert "apis" not in document
+    assert document["api"] == VALID_ENVIRONMENT["api"]
+    assert default_api_name == "default"
+    assert resolved_apis == {"default": VALID_ENVIRONMENT["api"]}
+
+
+def test_resolve_apis_multi_api_normalizes_and_strips_default_flag():
+    resolved_apis, default_api_name = resolve_apis(MULTI_API_ENVIRONMENT)
+
+    assert default_api_name == "identity_service"
+    assert resolved_apis["identity_service"] == {"base_url": "https://identity.test/api"}
+    assert resolved_apis["business_api"] == {
+        "base_url": "https://business.test/api",
+        "headers": {"X-Api-Key": "secret"},
+    }
+    assert "default" not in resolved_apis["identity_service"]

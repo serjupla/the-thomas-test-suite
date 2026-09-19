@@ -22,7 +22,7 @@ from thomas.core.execution_record import (
     write_execution_record,
 )
 from thomas.core.extraction import resolve_extract_variables
-from thomas.core.loading import LoadedScenario
+from thomas.core.loading import LoadedScenario, ThomasFileError, resolve_apis
 from thomas.core.variables import resolve_payload
 from thomas.operators import engine
 
@@ -164,6 +164,7 @@ def _resolve_headers(headers: dict[str, str] | None, variables: dict[str, Any]) 
 def dispatch_scenario(
     scenario: LoadedScenario,
     *,
+    api_name: str,
     base_url: str,
     timeout_seconds: int,
     variables: dict[str, Any],
@@ -192,7 +193,7 @@ def dispatch_scenario(
             correlation_error=None,
             request_timestamp=request_timestamp,
             response_timestamp=None,
-            request_sent={"method": endpoint["method"], "path": resolved_path, "payload": resolved_payload, "headers": {}},
+            request_sent={"method": endpoint["method"], "path": resolved_path, "payload": resolved_payload, "headers": {}, "api": api_name},
             api_response=None,
             request_technical_error=f"Header variable resolution failed: {exc!s}",
             api_checks_result=[],
@@ -233,7 +234,7 @@ def dispatch_scenario(
             correlation_error=None,
             request_timestamp=request_timestamp,
             response_timestamp=None,
-            request_sent={"method": endpoint["method"], "path": resolved_path, "payload": resolved_payload},
+            request_sent={"method": endpoint["method"], "path": resolved_path, "payload": resolved_payload, "api": api_name},
             api_response=None,
             request_technical_error=str(exc),
             api_checks_result=[],
@@ -306,7 +307,7 @@ def dispatch_scenario(
         correlation_error=correlation_result.correlation_error,
         request_timestamp=request_timestamp,
         response_timestamp=response_timestamp,
-        request_sent={"method": endpoint["method"], "path": resolved_path, "payload": resolved_payload, "headers": merged_headers},
+        request_sent={"method": endpoint["method"], "path": resolved_path, "payload": resolved_payload, "headers": merged_headers, "api": api_name},
         api_response={"status_code": response.status_code, "body": body},
         request_technical_error=None,
         api_checks_result=api_checks_result,
@@ -330,31 +331,40 @@ def run_request(
     scenarios = list(scenarios)
     start_time = datetime.now(timezone.utc)
 
-    # T030-T032: Extract and resolve environment-level api headers
-    api_headers_raw = environment["api"].get("headers")
-    try:
-        api_headers_resolved = _resolve_headers(api_headers_raw, variables)
-    except Exception as exc:
-        logger.error("Failed to resolve environment api.headers: %s", exc)
-        raise
+    # Feature 018: resolve the environment's legacy `api` or named `apis` map once,
+    # then pre-resolve each named API's headers (variables substituted from the
+    # run's initial snapshot, matching how environment headers were resolved before).
+    resolved_apis, default_api_name = resolve_apis(environment)
+    resolved_api_headers: dict[str, dict[str, str]] = {}
+    for api_name, api_config in resolved_apis.items():
+        try:
+            resolved_api_headers[api_name] = _resolve_headers(api_config.get("headers"), variables)
+        except Exception as exc:
+            logger.error("Failed to resolve api.headers for API '%s': %s", api_name, exc)
+            raise
 
     # T035: Pass variables to poll_services_info so it can resolve service-level headers
     services_info = poll_services_info(environment.get("services_info", []), variables=variables)
 
-    base_url = environment["api"]["base_url"]
-    timeout_seconds = environment["api"].get("timeout_seconds", 30)
-    api_ssl_verify = environment["api"].get("ssl_verify", True)
-
     results = []
     for scenario in scenarios:
+        api_name = scenario.document["endpoint"].get("api") or default_api_name
+        if api_name not in resolved_apis:
+            message = (
+                f"scenario '{scenario.document['scenario_id']}' references undeclared API "
+                f"{api_name!r} (not found in the environment's 'apis')"
+            )
+            raise ThomasFileError([(scenario.scenario_file, message)])
+        api_config = resolved_apis[api_name]
         # T032: Pass resolved environment headers as default_headers to dispatch_scenario
         result = dispatch_scenario(
             scenario,
-            base_url=base_url,
-            timeout_seconds=timeout_seconds,
+            api_name=api_name,
+            base_url=api_config["base_url"],
+            timeout_seconds=api_config.get("timeout_seconds", 30),
             variables=variables,
-            ssl_verify=api_ssl_verify,
-            default_headers=api_headers_resolved,
+            ssl_verify=api_config.get("ssl_verify", True),
+            default_headers=resolved_api_headers[api_name],
         )
         results.append(result)
         if progress_callback is not None:

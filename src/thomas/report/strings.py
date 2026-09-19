@@ -24,6 +24,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "col_result": "Result",
         "col_name": "Name",
         "col_type": "Type",
+        "col_api": "API",
         "not_displayed_label": "Not displayed",
         # Tabs
         "tab_dashboard": "Results",
@@ -75,6 +76,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "env_field_thomas_version": "Thomas version",
         "env_field_start": "Started at",
         "env_api_title": "API under test",
+        "env_field_api_name_default": "default",
         "env_field_base_url": "Base URL",
         "env_field_timeout": "Timeout",
         "env_field_ssl_verify": "SSL verify",
@@ -124,6 +126,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "col_result": "Resultado",
         "col_name": "Nome",
         "col_type": "Tipo",
+        "col_api": "API",
         "not_displayed_label": "Não exibido",
         # Tabs
         "tab_dashboard": "Resultados",
@@ -175,6 +178,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "env_field_thomas_version": "Versão The Thomas",
         "env_field_start": "Início",
         "env_api_title": "API sob teste",
+        "env_field_api_name_default": "padrão",
         "env_field_base_url": "Base URL",
         "env_field_timeout": "Timeout",
         "env_field_ssl_verify": "SSL verify",

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "feature": "multi_api_chaining",
+  "scenario_id": "consume_on_business_api",
+  "description": "Demonstrates multi-API environments (Feature 018): explicitly targets the non-default named API (business_api) via endpoint.api, consuming the value extracted by 08_extract_from_identity_service.json even though the two requests are dispatched against different named APIs.",
+  "endpoint": {
+    "method": "GET",
+    "path": "/posts?userId={{multi_api_user_id}}",
+    "api": "business_api"
+  },
+  "api_checks": [
+    { "id": "status_ok", "field": "status_code", "operator": "equals", "expected_value": 200 }
+  ]
+}

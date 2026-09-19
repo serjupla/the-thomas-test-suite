@@ -64,6 +64,38 @@ The `validation/validation_runner.py` module is the only place that
 instantiates connectors, using a dispatch dictionary by `type` (similar to
 the operator engine) — never an `if/elif` per connector type.
 
+### Masking mechanism (also covers HTTP auth headers, Feature 018)
+
+The mask/reveal mechanism referenced above is generic over "any key/value
+pairs" — it is not connector-specific in implementation, even though it
+was originally exercised only by connector configs. It lives in
+`report/generator.py`:
+
+- `_SENSITIVE_KEY_PATTERN` — a single case-insensitive regex checked
+  against every field name (dotted path for nested objects), currently
+  matching `KEY`, `TOKEN`, `SECRET`, `PASSWORD`/`SENHA`, `CREDENTIAL`,
+  `SECURITY`, `USER`/`USUÁRIO`/`USUARIO`, `AUTHORIZATION`, and `COOKIE`.
+  A field whose name matches is reveal-on-demand masked in the rendered
+  HTML report (shown as `••••••••••` with a reveal control), the same
+  treatment as connector `TOKEN`/`SECRET` fields today — never the
+  stricter `NEVER_SHOW_FIELDS` denylist tier described above.
+- `_flatten_kv`/`_leaf_row` — recursively flattens any nested dict/list
+  into display rows (`{key, value, is_sensitive, value_masked,
+  is_never_show}`), checking each leaf's dotted key against
+  `_SENSITIVE_KEY_PATTERN` and, for connector configs specifically,
+  against that connector type's `NEVER_SHOW_FIELDS`.
+
+Feature 018 extended `_SENSITIVE_KEY_PATTERN` with `AUTHORIZATION` and
+`COOKIE` (`X-Api-Key` and similar already matched via the existing `KEY`
+term) and routed HTTP request headers — both a scenario's per-request
+headers in the results view and each named API's configured headers in
+the environment view — through this same `_flatten_kv`/`_leaf_row`
+pipeline, which they were not before. This means `Authorization`,
+`Cookie`, and any `*Key*`/`*Token*`/`*Secret*`-named header (for both the
+legacy single `api` and every named entry under `apis`) is now masked in
+the HTML report consistently with how connector secrets are masked,
+without introducing a second masking code path.
+
 ## Connection lifecycle
 
 - One connection per named connector is opened **once per `thomas

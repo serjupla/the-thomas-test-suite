@@ -3,8 +3,11 @@
   "$id": "https://thomas-test-suite.dev/schemas/environment_v1.json",
   "title": "Environment",
   "type": "object",
-  "required": ["schema_version", "environment_name", "system_name", "timezone", "api"],
+  "required": ["schema_version", "environment_name", "system_name", "timezone"],
   "additionalProperties": false,
+  "not": {
+    "required": ["api", "apis"]
+  },
   "properties": {
     "schema_version": { "const": 1 },
     "environment_name": { "type": "string", "minLength": 1 },
@@ -25,6 +28,25 @@
         "headers": {
           "type": "object",
           "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "apis": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["base_url"],
+        "additionalProperties": false,
+        "properties": {
+          "base_url": { "type": "string", "minLength": 1 },
+          "timeout_seconds": { "type": "integer", "minimum": 1, "default": 30 },
+          "ssl_verify": { "type": "boolean" },
+          "headers": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "default": { "type": "boolean", "default": false }
         }
       }
     },

@@ -19,7 +19,7 @@ from zoneinfo import ZoneInfo
 from jinja2 import Environment, PackageLoader
 
 from thomas.connectors import resolve_connector_type
-from thomas.core.loading import ThomasFileError
+from thomas.core.loading import ThomasFileError, resolve_apis
 from thomas.report.strings import STRINGS
 
 _STATUS_PRIORITY = {"aprovado": 0, "aguardando": 1, "reprovado": 2}
@@ -29,7 +29,8 @@ _FINAL_STATUS_TO_PT = {
     "awaiting_validation": "aguardando",
 }
 _SENSITIVE_KEY_PATTERN = re.compile(
-    r"KEY|TOKEN|SECRET|PASSWORD|SENHA|CREDENTIAL|SECURITY|USER|USUÁRIO|USUARIO", re.IGNORECASE
+    r"KEY|TOKEN|SECRET|PASSWORD|SENHA|CREDENTIAL|SECURITY|USER|USUÁRIO|USUARIO|AUTHORIZATION|COOKIE",
+    re.IGNORECASE,
 )
 _MASK_DISPLAY = "•" * 10
 
@@ -363,8 +364,9 @@ def _build_scenario_detail(result: dict, connectors: dict, tz: ZoneInfo) -> dict
     requisicao = {
         "method": request_sent.get("method"),
         "path": request_sent.get("path"),
+        "api": request_sent.get("api") or "default",
         "correlation_id": result.get("correlation_id"),
-        "headers": request_sent.get("headers") or {},
+        "headers": _flatten_kv(request_sent.get("headers") or {}),
         "payload": request_sent.get("payload"),
     }
 
@@ -503,8 +505,18 @@ def _build_prepared_variables_view(execution_record: dict) -> list[dict] | None:
 def _build_environment_view(
     execution_record: dict, environment: dict, execution_signature: dict, tz: ZoneInfo
 ) -> dict:
-    api = environment.get("api", {})
-    headers = api.get("headers") or {}
+    resolved_apis, default_api_name = resolve_apis(environment)
+    apis_under_test = [
+        {
+            "name": name,
+            "is_default": name == default_api_name,
+            "base_url": config.get("base_url"),
+            "timeout_seconds": config.get("timeout_seconds", 30),
+            "ssl_verify": config.get("ssl_verify", True),
+            "headers": _flatten_kv(config.get("headers") or {}),
+        }
+        for name, config in resolved_apis.items()
+    ]
 
     return {
         "identificacao": {
@@ -515,12 +527,7 @@ def _build_environment_view(
             "thomas_version": execution_record["thomas_version"],
             "start_timestamp": _format_datetime_br(execution_record["start_timestamp"], tz),
         },
-        "api_under_test": {
-            "base_url": api.get("base_url"),
-            "timeout_seconds": api.get("timeout_seconds", 30),
-            "ssl_verify": api.get("ssl_verify", True),
-            "headers": [{"key": k, "value": v} for k, v in headers.items()],
-        },
+        "apis_under_test": apis_under_test,
         "services_info": _build_services_info_view(execution_record, tz),
         "connectors": _build_connectors_view(environment),
         "prepared_variables": _build_prepared_variables_view(execution_record),

@@ -9,7 +9,9 @@ from bs4 import BeautifulSoup
 
 from thomas.core.loading import ThomasFileError
 from thomas.report.generator import (
+    _build_environment_view,
     _build_groups,
+    _build_scenario_detail,
     _build_validation_rounds,
     _donut_gradient_stops,
     _duration_display,
@@ -591,3 +593,130 @@ def test_edge_case_single_timestamp_gantt_markers_render_without_divide_by_zero(
     marker = soup.select_one(".gantt-marker")
     assert marker is not None
     assert "* 0.5)" in marker["style"]
+
+
+# Feature 018: Multiple APIs per environment
+
+MULTI_API_ENVIRONMENT = {
+    "schema_version": 1,
+    "environment_name": "dev",
+    "system_name": "Example System",
+    "timezone": "America/Sao_Paulo",
+    "apis": {
+        "identity_service": {
+            "base_url": "https://identity.test/api",
+            "default": True,
+            "headers": {"Authorization": "Bearer id-token", "X-Tenant": "tenant-a"},
+        },
+        "business_api": {
+            "base_url": "https://business.test/api",
+            "headers": {"X-Api-Key": "biz-key"},
+        },
+    },
+}
+
+
+def test_build_scenario_detail_includes_requisicao_api_when_present():
+    result = _scenario("sc1", "", "feat", "passed")
+    result["request_sent"]["api"] = "business_api"
+
+    detail = _build_scenario_detail(result, {}, ZoneInfo("America/Sao_Paulo"))
+
+    assert detail["requisicao"]["api"] == "business_api"
+
+
+def test_build_scenario_detail_falls_back_to_default_when_request_sent_api_absent():
+    result = _scenario("sc1", "", "feat", "passed")  # request_sent has no "api" key
+
+    detail = _build_scenario_detail(result, {}, ZoneInfo("America/Sao_Paulo"))
+
+    assert detail["requisicao"]["api"] == "default"
+
+
+def test_build_environment_view_apis_under_test_has_one_entry_for_legacy_environment():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results)
+    tz = ZoneInfo("America/Sao_Paulo")
+    signature = {"algorithm": "SHA-256", "hex_digest": "deadbeef"}
+
+    view = _build_environment_view(record, ENVIRONMENT, signature, tz)
+
+    assert len(view["apis_under_test"]) == 1
+    entry = view["apis_under_test"][0]
+    assert entry["name"] == "default"
+    assert entry["is_default"] is True
+    assert entry["base_url"] == "https://example.test/api"
+
+
+def test_build_environment_view_apis_under_test_lists_every_named_api():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results)
+    tz = ZoneInfo("America/Sao_Paulo")
+    signature = {"algorithm": "SHA-256", "hex_digest": "deadbeef"}
+
+    view = _build_environment_view(record, MULTI_API_ENVIRONMENT, signature, tz)
+
+    entries = {entry["name"]: entry for entry in view["apis_under_test"]}
+    assert set(entries) == {"identity_service", "business_api"}
+    assert entries["identity_service"]["is_default"] is True
+    assert entries["business_api"]["is_default"] is False
+    assert entries["business_api"]["base_url"] == "https://business.test/api"
+    header_keys = {row["key"] for row in entries["business_api"]["headers"]}
+    assert header_keys == {"X-Api-Key"}
+
+
+def test_sensitive_key_pattern_matches_authorization_and_cookie():
+    assert _is_sensitive_key("Authorization")
+    assert _is_sensitive_key("Cookie")
+    assert _is_sensitive_key("X-Api-Key")
+
+
+def test_flatten_kv_marks_authorization_and_cookie_headers_sensitive():
+    rows = _flatten_kv({"Authorization": "Bearer abc", "Cookie": "session=xyz", "X-Custom": "plain"})
+    by_key = {row["key"]: row for row in rows}
+
+    assert by_key["Authorization"]["is_sensitive"] is True
+    assert by_key["Authorization"]["value_masked"] != "Bearer abc"
+    assert by_key["Cookie"]["is_sensitive"] is True
+    assert by_key["X-Custom"]["is_sensitive"] is False
+
+
+def test_rendered_html_masks_auth_headers_in_request_and_environment_views():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    results[0]["request_sent"]["headers"] = {"Authorization": "Bearer secret-token"}
+    results[0]["request_sent"]["api"] = "identity_service"
+    record = _execution_record(results)
+
+    html = generate_report_html(record, MULTI_API_ENVIRONMENT, b"{}")
+
+    assert ">Bearer secret-token<" not in html
+    assert 'data-real-value="Bearer secret-token"' in html
+    assert ">Bearer id-token<" not in html
+    assert 'data-real-value="Bearer id-token"' in html
+
+
+def test_rendered_html_shows_api_name_per_request_and_environment_view():
+    results = [_scenario("sc1", "", "feat", "passed")]
+    results[0]["request_sent"]["api"] = "business_api"
+    record = _execution_record(results)
+
+    html = generate_report_html(record, MULTI_API_ENVIRONMENT, b"{}")
+    soup = BeautifulSoup(html, "html.parser")
+
+    assert "business_api" in html
+    assert "identity_service" in html
+    assert soup.select_one(".env-block") is not None
+
+
+def test_rendered_html_legacy_execution_record_without_request_sent_api_renders_unchanged():
+    """Regression (FR-011, SC-004): an execution record fixture produced by a
+    pre-feature Thomas version — no `request_sent.api` anywhere — must render
+    without error, with per-request API falling back to 'default'."""
+    results = [_scenario("sc1", "", "feat", "passed")]  # no "api" key on request_sent
+    record = _execution_record(results)
+
+    html = generate_report_html(record, ENVIRONMENT, b"{}")
+
+    assert "NaN" not in html
+    soup = BeautifulSoup(html, "html.parser")
+    assert soup.select_one(".env-block") is not None

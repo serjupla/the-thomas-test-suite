@@ -81,6 +81,8 @@ def scaffold_project(destination: Path | None = None, force: bool = False) -> Sc
         ("examples/scenarios/quickstart/03_create_and_confirm_order.json", "examples/scenarios/quickstart/03_create_and_confirm_order.json", False, False),
         ("examples/scenarios/quickstart/06_extract_order_id.json", "examples/scenarios/quickstart/06_extract_order_id.json", False, False),
         ("examples/scenarios/quickstart/07_consume_order_id.json", "examples/scenarios/quickstart/07_consume_order_id.json", False, False),
+        ("examples/scenarios/quickstart/08_extract_from_identity_service.json", "examples/scenarios/quickstart/08_extract_from_identity_service.json", False, False),
+        ("examples/scenarios/quickstart/09_consume_on_business_api.json", "examples/scenarios/quickstart/09_consume_on_business_api.json", False, False),
     ]
 
     for template_name, dest_rel, executable, protected in templates:

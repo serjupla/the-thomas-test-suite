@@ -169,7 +169,8 @@ Notes on this example:
 | `description` | No | Free text, shown in the report. |
 | `endpoint.method` | Yes | `GET`, `POST`, `PUT`, `DELETE`, `PATCH`. |
 | `endpoint.path` | Yes | Relative path, concatenated with the environment's `base_url`; supports `{{variable}}` (e.g., `/users/{{user_id}}`). |
-| `endpoint.headers` | No | Custom HTTP headers for this scenario. Object with string keys and values (e.g., `{"Authorization": "Bearer {{auth_token}}"}`). Values support `{{variable}}`. Merges with environment `api.headers` with scenario values taking precedence. (Feature 004) |
+| `endpoint.headers` | No | Custom HTTP headers for this scenario. Object with string keys and values (e.g., `{"Authorization": "Bearer {{auth_token}}"}`). Values support `{{variable}}`. Merges with the resolved environment API's `headers` with scenario values taking precedence. (Feature 004) |
+| `endpoint.api` | No | Name of the environment's named API (see `apis` in §2) this scenario's request targets. Omitted → resolves to the environment's default API (Feature 018). |
 | `payload` | No | Free-form object; supports `{{variable}}`. Omitted for bodyless methods. |
 | `correlation.source` | Yes (if there are `validations`) | `api_response`, `request_payload`, or `variable`. |
 | `correlation.field` | Yes (if there are `validations`) | JSONPath (if source = `api_response`), field name in the payload (if source = `request_payload`), or variable name (if source = `variable`). |
@@ -314,6 +315,74 @@ Each item has `json_path` (a JSONPath expression, same dialect/engine as
 
 A single environment may have **multiple connectors of the same type**
 (e.g. `oracle_main` and `oracle_secondary`), each with its own name.
+
+### Multiple named APIs (`apis`) (Feature 018)
+
+An environment declares exactly one of `api` (the legacy single-API shape
+above) or `apis` (a named map of API configs) — never both. `apis` lets a
+scenario set target different backend services within the same
+`thomas request` run, so a value extracted via `extract_variables` from
+one API's response can be chained into a request against a different API.
+
+```json
+{
+  "schema_version": 1,
+  "environment_name": "staging",
+  "system_name": "Example System",
+  "timezone": "America/Sao_Paulo",
+  "apis": {
+    "identity_service": {
+      "base_url": "https://identity.staging.example.com",
+      "default": true,
+      "headers": { "Authorization": "Bearer {{identity_token}}" }
+    },
+    "business_api": {
+      "base_url": "https://business.staging.example.com",
+      "timeout_seconds": 60,
+      "ssl_verify": false,
+      "headers": { "X-Api-Key": "{{business_api_key}}" }
+    }
+  }
+}
+```
+
+| Field | Required | Type | Default | Description |
+|---|---|---|---|---|
+| `apis.<name>.base_url` | Yes | string | — | Same semantics as `api.base_url`. |
+| `apis.<name>.timeout_seconds` | No | integer | 30 | Same semantics as `api.timeout_seconds`. |
+| `apis.<name>.ssl_verify` | No | boolean | `true` | Same semantics as `api.ssl_verify`. |
+| `apis.<name>.headers` | No | object | — | Same semantics as `api.headers`; masked in the execution record log and HTML report the same way auth headers always are (see `05-connectors.md`). |
+| `apis.<name>.default` | No | boolean | `false` | Marks this API as the one used when a scenario's `endpoint.api` is omitted. Meaningful only when `apis` has 2+ entries. |
+
+A scenario's `endpoint.api` (see §1) selects which entry of `apis` its
+request is dispatched against, by name, case-sensitively. Name resolution
+and the following validation rules are enforced by `core/loading.py`
+(imperatively, after JSON Schema validation, since they express
+cross-field conditions JSON Schema alone cannot state with a clear error
+message):
+
+- `api` and `apis` both present on the same environment → rejected,
+  naming both fields.
+- `apis` with exactly 1 entry → that entry is the default, regardless of
+  its own `default` flag.
+- `apis` with 2+ entries → exactly one entry must have `default: true`;
+  zero or more than one such entry → rejected as an "ambiguous
+  environment" error.
+- A duplicate name within `apis` → rejected, naming the duplicate (JSON
+  object keys are inherently unique for well-formed input; this is
+  defense-in-depth against non-standard/duplicate-key JSON).
+- A scenario's `endpoint.api` naming a value absent from `apis` → rejected
+  at dispatch time, before any HTTP request for that scenario is sent,
+  naming the invalid API name, the scenario file, and `scenario_id`.
+
+Internally, both shapes (`api` and `apis`) are normalized once, right
+after a successful load, into the same `resolved_apis: {<name>: {...}}` +
+`default_api_name: str` shape — a legacy `api` becomes
+`{"default": {...}}` with `default_api_name = "default"`. Every consumer
+(`request/dispatch.py`, `report/generator.py`) always resolves a name
+against this uniform map; there is no separate "legacy vs. named" code
+path. A legacy single-`api` environment is fully backward compatible:
+`apis` absent means no change from pre-Feature-018 behavior.
 
 ---
 
@@ -543,9 +612,20 @@ Example:
     "X-Request-Id": "req-2026-07-25-001",
     "X-Tenant": "tenant-staging",
     "X-API-Key": "staging-key-abc123"
-  }
+  },
+  "api": "business_api"
 }
 ```
+
+### Named API used per request (`request_sent.api`) (Feature 018)
+
+`request_sent.api` records the resolved name of the environment API this
+request was dispatched against — always `"default"` at minimum, even for
+a legacy single-`api` environment (never blank/omitted for records written
+by a version of Thomas that supports this feature). `thomas validate` and
+`thomas report` treat a missing `request_sent.api` (records written by an
+older Thomas version) as `"default"`/legacy, with no error and no required
+migration step.
 
 ### Variable substitution in `endpoint.path`
 

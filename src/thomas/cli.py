@@ -227,14 +227,18 @@ def run_request_command(args: argparse.Namespace) -> int:
         def on_progress(scenario, result):
             progress.advance(task)
 
-        output_path = run_request(
-            environment=environment,
-            scenarios=scenarios,
-            variables=variables,
-            output_dir=args.output,
-            progress_callback=on_progress,
-            title=args.title,
-        )
+        try:
+            output_path = run_request(
+                environment=environment,
+                scenarios=scenarios,
+                variables=variables,
+                output_dir=args.output,
+                progress_callback=on_progress,
+                title=args.title,
+            )
+        except ThomasFileError as exc:
+            console.print(f"[red]Invalid scenario file(s):[/red] {exc}")
+            return 1
 
     if variables_path is not None and variables != variables_snapshot:
         save_variables(variables_path, variables)
