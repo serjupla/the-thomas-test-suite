@@ -31,17 +31,19 @@ dependencies = [
     "requests>=2.31",
     "jsonpath-ng>=1.6",
     "jinja2>=3.1",
+    "tzdata; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "responses>=0.25",
-    "ruff>=0.6",
+    "ruff>=0.16,<0.17",
     "beautifulsoup4>=4.12",
 ]
 oracle = ["oracledb"]
 db2 = ["ibm-db"]
+postgres = ["psycopg[binary]>=3.1"]
 mongo = ["pymongo"]
 kafka = ["confluent-kafka"]
 
@@ -74,6 +76,14 @@ target-version = "py310"
 line-length = 100
 
 [tool.ruff.lint]
+# PLW1514 (text I/O without an explicit encoding) is a preview rule; opt in to
+# it alone so no other preview behaviour leaks into `ruff check` (spec 020, R6).
+preview = true
+explicit-preview-rules = true
+# Explicit stable rule set: with preview on, ruff would otherwise switch to
+# its larger preview default set, which changes between patch releases.
+select = ["E4", "E7", "E9", "F"]
+extend-select = ["PLW1514"]
 ignore = [
     "BLE001",  # Do not catch blind exception — acceptable for error handling in headers and examples
     "RUF012",  # Mutable default value — acceptable for in-memory demo state in mock_server

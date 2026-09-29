@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # Opens a PR when a dependency (e.g. ruff, pinned to a minor range) has a
+  # new release, so upgrades are adopted deliberately with CI on the PR.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"

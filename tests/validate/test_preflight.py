@@ -13,7 +13,7 @@ def _write_scenario(tmp_path, filename, validations):
         "api_checks": [],
         "validations": validations,
     }
-    (tmp_path / filename).write_text(json.dumps(scenario))
+    (tmp_path / filename).write_text(json.dumps(scenario), encoding="utf-8")
     return filename
 
 

@@ -19,7 +19,7 @@ from zoneinfo import ZoneInfo
 from jinja2 import Environment, PackageLoader
 
 from thomas.connectors import resolve_connector_type
-from thomas.core.loading import ThomasFileError, resolve_apis
+from thomas.core.loading import ThomasFileError, read_user_text, resolve_apis
 from thomas.report.strings import STRINGS
 
 _STATUS_PRIORITY = {"aprovado": 0, "aguardando": 1, "reprovado": 2}
@@ -45,12 +45,12 @@ def write_report(html: str, execution_path: Path, output_dir: Path, generated_at
     """Create output_dir if needed, write html to the resolved filename, return the written Path."""
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / resolve_report_filename(execution_path, generated_at)
-    output_path.write_text(html)
+    output_path.write_text(html, encoding="utf-8", newline="\n")
     return output_path
 
 
 def _read_package_svg(file_name: str) -> str:
-    return resources.files("thomas.report.assets").joinpath(file_name).read_text()
+    return resources.files("thomas.report.assets").joinpath(file_name).read_text(encoding="utf-8")
 
 
 def _validate_svg(text: str, path: Path) -> str:
@@ -69,9 +69,12 @@ def _resolve_company_logo_svg(environment: dict) -> str | None:
         return None
     path = Path(logo_path)
     try:
-        text = path.read_text()
-    except OSError as exc:
-        raise ThomasFileError([(str(path), f"could not read company_logo_path file: {exc}")]) from exc
+        text = read_user_text(path)
+    except ThomasFileError as exc:
+        if isinstance(exc.__cause__, OSError):
+            message = f"could not read company_logo_path file: {exc.__cause__}"
+            raise ThomasFileError([(str(path), message)]) from exc.__cause__
+        raise
     return _validate_svg(text, path)
 
 

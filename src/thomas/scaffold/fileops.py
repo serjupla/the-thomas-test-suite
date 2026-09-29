@@ -18,7 +18,7 @@ def copy_template(src_path: str, dst_path: Path, executable: bool = False) -> No
     dst_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write template content to destination
-    dst_path.write_text(src_path, encoding="utf-8")
+    dst_path.write_text(src_path, encoding="utf-8", newline="\n")
 
     # Make executable if requested
     if executable:

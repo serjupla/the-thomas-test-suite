@@ -23,6 +23,8 @@
 | F08 | Conector MongoDB | 2 | Não iniciado | — |
 | F016 | Fix: falha de serialização de `datetime`/`date` em `thomas validate` (issue pública #8) | 2 | Concluído | 2026-09-16 |
 | F018 | Múltiplas APIs por ambiente para cenários encadeados (`apis` nomeado, `endpoint.api`, mascaramento de headers de autenticação) | 2 | Concluído | 2026-09-18 |
+| F019 | Conector PostgreSQL (issue pública #3) | 2 | Concluído | 2026-09-26 |
+| F020 | Fix: compatibilidade com Windows — tzdata e UTF-8 (issue pública #2) | 2 | Concluído | 2026-09-27 |
 
 > Atualizar "Status" (Não iniciado / Em andamento / Concluído) e "Data de
 > conclusão" conforme cada feature avança pelo fluxo do Spec-Kit
@@ -210,3 +212,36 @@ mudança de `schema_version` (todos os campos novos são aditivos e
 opcionais); ambientes legados de API única, cenários sem `endpoint.api` e
 registros de execução antigos sem `request_sent.api` continuam
 funcionando sem modificação.
+
+### F019 — Conector PostgreSQL
+Resolve a issue pública #3 ("Acesso bases Postgres"). Quarto conector real,
+implementado via `psycopg` 3 (`psycopg[binary]`, que embute a libpq — sem
+cliente Postgres instalado no sistema), distribuído como o extra opcional
+`thomas[postgres]` e seguindo o mesmo contrato dos conectores Oracle/DB2
+(linha única esperada, mesmas regras de erro técnico, uma conexão por
+conector nomeado por execução de `thomas validate`). Registrado como
+`postgres` e `postgresql` (ambos aceitos no enum do schema de ambiente, sem
+mudança de `schema_version`). A sessão abre em modo autocommit e somente
+leitura, então uma query com erro não contamina as validações seguintes.
+`:correlation_id` vira bind nativo nomeado; `%` literal e casts `::`
+funcionam sem restrição na query. Valores retornados são normalizados para
+tipos nativos serializáveis em JSON (`numeric` → int/float, `uuid` →
+string, `json`/`jsonb` e arrays → objetos/listas). `connection_string`,
+`username` e `password` nunca aparecem no relatório nem em log (nem em
+DEBUG).
+
+### F020 — Fix: compatibilidade com Windows (tzdata e UTF-8)
+Resolve a issue pública #2: em uma instalação limpa de Windows com locale
+`cp1252`, o quickstart do README não concluía. `tzdata` passa a ser
+dependência apenas em Windows (`sys_platform == 'win32'`), e o `timezone`
+do ambiente é validado ao carregar o ambiente em `request`, `validate` e
+`report`, com mensagem clara antes de qualquer requisição. Todo arquivo
+lido pela ferramenta é decodificado como UTF-8 estrito (BOM aceito) — um
+arquivo em outro encoding é rejeitado nomeando o arquivo, em vez de
+corromper valores acentuados em silêncio — e todo arquivo gerado é UTF-8
+com quebra de linha `\n`, byte-idêntico entre sistemas operacionais
+(JSON mantém `ensure_ascii=True`). O console troca caracteres não
+suportados por `?` em vez de abortar. Um teste-guarda (AST) e a regra
+`PLW1514` do ruff impedem I/O de texto sem encoding explícito em `src/` e
+`tests/`, e a CI passa a rodar também em `windows-latest`. Sem mudança de
+`schema_version`.

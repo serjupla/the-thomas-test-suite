@@ -5,6 +5,21 @@ the root level. The Thomas must validate this field and the rest of the
 document against the corresponding JSON Schema (draft-07) before any
 processing, failing with a clear message on incompatibility.
 
+### File encoding
+
+The encoding contract is the same on every operating system, whatever the
+locale (Feature 020):
+
+- **Files Thomas reads** (scenarios, environments, variables, execution
+  records, `company_logo_path` SVG): UTF-8, with or without a leading BOM,
+  decoded strictly. A file in any other encoding (e.g. cp1252) is rejected
+  before anything runs, with
+  `<path>: file is not valid UTF-8 (invalid byte 0xE1 at offset 57); save it with UTF-8 encoding`.
+- **Files Thomas writes** (execution record, variables file, HTML report,
+  files created by `thomas init`, `thomas.log`): UTF-8 without BOM, `\n`
+  line endings. JSON artifacts keep `ensure_ascii=True`, so they are pure
+  ASCII and byte-identical across operating systems and versions.
+
 ---
 
 ## 1. Scenario Schema (`scenario_v1.json`)
@@ -299,7 +314,7 @@ Each item has `json_path` (a JSONPath expression, same dialect/engine as
 | `company_name` | No | string | — | Organization context for audit trail; appears in execution record if present. |
 | `department_name` | No | string | — | Department/team context for audit trail; appears in execution record if present. |
 | `system_name` | Yes | string | — | Name of the system under test, shown in the report header. |
-| `timezone` | Yes | string | — | IANA name (e.g. `America/Sao_Paulo`); used to format every timestamp in the report. |
+| `timezone` | Yes | string | — | IANA name (e.g. `America/Sao_Paulo`); used to format every timestamp in the report. Validated when the environment loads (every command): an unresolvable name fails with `unknown timezone '<value>': not a valid IANA time zone name (on Windows, make sure the 'tzdata' package is installed)`. |
 | `report_language` | No | enum | `"en"` | `"en"` or `"pt"` — language used to render `thomas report` output. |
 | `api.base_url` | Yes | string | — | Base URL concatenated with each scenario's `endpoint.path`. |
 | `api.timeout_seconds` | No | integer | 30 | HTTP request timeout in seconds. |

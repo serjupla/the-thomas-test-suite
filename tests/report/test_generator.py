@@ -90,7 +90,7 @@ def test_write_report_creates_output_dir_and_returns_path(tmp_path):
     output_dir = tmp_path / "reports"
     path = write_report("<html></html>", Path("execution_1.json"), output_dir, datetime(2026, 7, 29, 10, 0, 0, tzinfo=timezone.utc))
     assert path.exists()
-    assert path.read_text() == "<html></html>"
+    assert path.read_text(encoding="utf-8") == "<html></html>"
     assert path.parent == output_dir
 
 
@@ -406,7 +406,7 @@ def test_logo_resolution_raises_thomas_file_error_when_company_logo_missing(tmp_
 
 def test_logo_resolution_raises_thomas_file_error_when_not_well_formed_svg(tmp_path):
     bad_svg = tmp_path / "logo.svg"
-    bad_svg.write_text("not xml at all <<<")
+    bad_svg.write_text("not xml at all <<<", encoding="utf-8")
     results = [_scenario("sc1", "", "feat", "passed")]
     record = _execution_record(results)
     environment = dict(ENVIRONMENT, company_logo_path=str(bad_svg))
@@ -416,12 +416,35 @@ def test_logo_resolution_raises_thomas_file_error_when_not_well_formed_svg(tmp_p
 
 def test_logo_resolution_reads_valid_company_logo(tmp_path):
     good_svg = tmp_path / "logo.svg"
-    good_svg.write_text('<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>')
+    good_svg.write_text('<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>', encoding="utf-8")
     results = [_scenario("sc1", "", "feat", "passed")]
     record = _execution_record(results)
     environment = dict(ENVIRONMENT, company_logo_path=str(good_svg))
     html = generate_report_html(record, environment, b"{}")
     assert "<rect" in html
+
+
+def test_logo_resolution_rejects_non_utf8_company_logo_naming_the_file(tmp_path):
+    cp1252_svg = tmp_path / "logo.svg"
+    cp1252_svg.write_bytes('<svg xmlns="http://www.w3.org/2000/svg"><title>Cobrança</title></svg>'.encode("cp1252"))
+    record = _execution_record([_scenario("sc1", "", "feat", "passed")])
+    environment = dict(ENVIRONMENT, company_logo_path=str(cp1252_svg))
+    with pytest.raises(ThomasFileError) as exc_info:
+        generate_report_html(record, environment, b"{}")
+    [(path, message)] = exc_info.value.errors
+    assert path == str(cp1252_svg)
+    assert message.startswith("file is not valid UTF-8 (invalid byte 0xE7")
+
+
+def test_logo_resolution_embeds_utf8_bom_company_logo_without_the_bom(tmp_path):
+    bom_svg = tmp_path / "logo.svg"
+    svg_text = '<svg xmlns="http://www.w3.org/2000/svg"><title>Cobrança</title><rect/></svg>'
+    bom_svg.write_bytes(b"\xef\xbb\xbf" + svg_text.encode("utf-8"))
+    record = _execution_record([_scenario("sc1", "", "feat", "passed")])
+    environment = dict(ENVIRONMENT, company_logo_path=str(bom_svg))
+    html = generate_report_html(record, environment, b"{}")
+    assert svg_text in html
+    assert "﻿" not in html
 
 
 def test_environment_without_report_language_defaults_to_english():
@@ -524,6 +547,54 @@ def test_db2_connector_credentials_never_appear_in_rendered_html():
     assert "fictional-secret" not in html
     assert "fictional_user" not in html
     assert "DATABASE=fictional" not in html
+
+
+@pytest.mark.parametrize("connector_type", ["postgres", "postgresql"])
+def test_postgres_connector_credentials_never_appear_in_rendered_html(connector_type):
+    results = [_scenario("sc1", "", "feat", "passed")]
+    record = _execution_record(results)
+    environment = dict(
+        ENVIRONMENT,
+        connectors={
+            "pg_main": {
+                "type": connector_type,
+                "connection_string": "postgresql://uri_user:uri-secret@fictional-pg-host:5432/fictional_db",
+                "username": "fictional_user",
+                "password": "fictional-secret",
+            }
+        },
+    )
+    html = generate_report_html(record, environment, b"{}")
+    for secret in ("uri-secret", "uri_user", "fictional_user", "fictional-secret", "fictional-pg-host"):
+        assert secret not in html
+
+
+def test_postgres_validation_renders_sql_query_and_json_obtained_value():
+    query = "SELECT payload FROM fictional_orders WHERE order_id = :correlation_id"
+    obtained = {"items": [1, 2], "status": "SETTLED"}
+    validation_rounds = [_validation_round(
+        "2026-07-25T13:00:00+00:00",
+        [{"id": "v1", "connector": "pg_main", "field": "payload", "expected": obtained,
+          "obtained": obtained, "operator": "equals", "query": query, "passed": True}],
+    )]
+    result = _scenario("sc1", "", "feat", "passed", validation_rounds=validation_rounds)
+    record = _execution_record([result])
+    environment = dict(
+        ENVIRONMENT,
+        connectors={
+            "pg_main": {
+                "type": "postgres",
+                "connection_string": "postgresql://fictional-pg-host:5432/fictional_db",
+            }
+        },
+    )
+    html = generate_report_html(record, environment, b"{}")
+    soup = BeautifulSoup(html, "html.parser")
+    assert query in soup.get_text()
+    assert "items" in html
+    assert "SETTLED" in html
+    assert "Decimal(" not in html
+    assert "UUID(" not in html
 
 
 def test_kafka_connector_password_appears_masked_and_revealable_in_rendered_html():

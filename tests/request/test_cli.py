@@ -26,7 +26,7 @@ VALID_SCENARIO = {
 
 
 def write_json(path, document) -> None:
-    path.write_text(json.dumps(document))
+    path.write_text(json.dumps(document), encoding="utf-8")
 
 
 def test_version_flag_prints_single_line_matching_installed_version(capsys):
@@ -100,7 +100,7 @@ def test_request_command_persists_title_when_supplied(tmp_path, monkeypatch):
 
     assert exit_code == 0
     execution_file = next((tmp_path / "executions").glob("*.json"))
-    execution_record = json.loads(execution_file.read_text())
+    execution_record = json.loads(execution_file.read_text(encoding="utf-8"))
     assert execution_record["title"] == "Release 4.2 — Regression Pass"
 
 
@@ -127,7 +127,7 @@ def test_request_command_omits_title_when_blank_or_whitespace(tmp_path, monkeypa
 
     assert exit_code == 0
     execution_file = next((tmp_path / "executions").glob("*.json"))
-    execution_record = json.loads(execution_file.read_text())
+    execution_record = json.loads(execution_file.read_text(encoding="utf-8"))
     assert "title" not in execution_record
 
 
@@ -273,7 +273,7 @@ def test_request_command_prints_console_summary_with_correct_counts(tmp_path, mo
 
     assert exit_code == 0
     output_file = next((tmp_path / "executions").glob("*.json"))
-    record = json.loads(output_file.read_text())
+    record = json.loads(output_file.read_text(encoding="utf-8"))
     statuses = [r["final_status"] for r in record["results"]]
     assert statuses.count("passed") == 1
     assert statuses.count("failed") == 1
@@ -313,7 +313,7 @@ def test_request_command_persists_extracted_variables_to_disk(tmp_path, monkeypa
     ])
 
     assert exit_code == 0
-    written = json.loads(variables_path.read_text())
+    written = json.loads(variables_path.read_text(encoding="utf-8"))
     assert written == {"schema_version": 1, "variables": {"order_id": "extracted-order-id"}}
 
 

@@ -25,13 +25,13 @@ class TestInitGitignore:
 
             # Create existing .gitignore
             gitignore = dest / ".gitignore"
-            gitignore.write_text("CUSTOM")
+            gitignore.write_text("CUSTOM", encoding="utf-8")
 
             # Scaffold without force
             result = scaffold_project(destination=dest, force=False)
 
             # Should be skipped
-            assert "CUSTOM" in gitignore.read_text()  # Not overwritten
+            assert "CUSTOM" in gitignore.read_text(encoding="utf-8")  # Not overwritten
             assert len(result.skipped) > 0
 
     def test_scaffold_overwrites_gitignore_with_force(self):
@@ -41,13 +41,13 @@ class TestInitGitignore:
 
             # Create existing .gitignore
             gitignore = dest / ".gitignore"
-            gitignore.write_text("CUSTOM")
+            gitignore.write_text("CUSTOM", encoding="utf-8")
 
             # Scaffold with force
             result = scaffold_project(destination=dest, force=True)
 
             # Should be overwritten
-            assert "CUSTOM" not in gitignore.read_text()  # Overwritten
+            assert "CUSTOM" not in gitignore.read_text(encoding="utf-8")  # Overwritten
             assert ".gitignore" in str(result.overwritten)
 
     def test_scaffold_gitignore_has_recommended_entries(self):
@@ -56,7 +56,7 @@ class TestInitGitignore:
             dest = Path(tmpdir)
             scaffold_project(destination=dest)
 
-            gitignore = (dest / ".gitignore").read_text()
+            gitignore = (dest / ".gitignore").read_text(encoding="utf-8")
 
             # Check for key entries
             assert "config/environments/*.json" in gitignore

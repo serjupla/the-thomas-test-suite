@@ -120,7 +120,7 @@ def test_run_request_persists_title_in_execution_record(tmp_path):
         title="Release 4.2",
     )
 
-    record = json.loads(output_path.read_text())
+    record = json.loads(output_path.read_text(encoding="utf-8"))
     assert record["title"] == "Release 4.2"
 
 
@@ -145,7 +145,7 @@ def test_run_request_omits_title_when_not_supplied(tmp_path):
         output_dir=tmp_path,
     )
 
-    record = json.loads(output_path.read_text())
+    record = json.loads(output_path.read_text(encoding="utf-8"))
     assert "title" not in record
 
 
@@ -374,7 +374,7 @@ def test_run_request_chains_extracted_variable_across_scenarios(tmp_path):
         output_dir=tmp_path,
     )
 
-    record = json.loads(output_path.read_text())
+    record = json.loads(output_path.read_text(encoding="utf-8"))
     results = record["results"]
     assert len(results) == 2
 
@@ -442,7 +442,7 @@ def test_dispatch_scenario_without_endpoint_api_resolves_to_default(tmp_path):
         output_dir=tmp_path,
     )
 
-    record = json.loads(output_path.read_text())
+    record = json.loads(output_path.read_text(encoding="utf-8"))
     assert record["results"][0]["request_sent"]["api"] == "identity_service"
     assert responses.calls[0].request.headers["X-Identity-Key"] == "id-key"
 
@@ -468,7 +468,7 @@ def test_run_request_multi_api_legacy_environment_resolves_to_default_name(tmp_p
         output_dir=tmp_path,
     )
 
-    record = json.loads(output_path.read_text())
+    record = json.loads(output_path.read_text(encoding="utf-8"))
     assert record["results"][0]["request_sent"]["api"] == "default"
 
 
@@ -519,7 +519,7 @@ def test_run_request_chains_variable_across_different_named_apis(tmp_path):
         output_dir=tmp_path,
     )
 
-    record = json.loads(output_path.read_text())
+    record = json.loads(output_path.read_text(encoding="utf-8"))
     results = record["results"]
     producer_result, consumer_result = results
     assert producer_result["request_sent"]["api"] == "identity_service"

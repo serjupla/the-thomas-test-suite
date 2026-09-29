@@ -78,7 +78,7 @@ def _write_scenario(tmp_path, filename, validations):
         "validations": validations,
     }
     path = tmp_path / filename
-    path.write_text(json.dumps(scenario))
+    path.write_text(json.dumps(scenario), encoding="utf-8")
     return filename
 
 

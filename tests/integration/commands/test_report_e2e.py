@@ -158,7 +158,7 @@ EXECUTION_RECORD = _build_execution_record(
 
 
 def write_json(path, document) -> None:
-    path.write_text(json.dumps(document, indent=2))
+    path.write_text(json.dumps(document, indent=2), encoding="utf-8")
 
 
 def _run_report(tmp_path, environment, subdir="", execution_record=None):
@@ -179,7 +179,7 @@ def _run_report(tmp_path, environment, subdir="", execution_record=None):
     assert exit_code == 0
     html_files = list(output_dir.glob("*.html"))
     assert len(html_files) == 1
-    return html_files[0].read_text()
+    return html_files[0].read_text(encoding="utf-8")
 
 
 # --- Feature 016: reads execution records persisted after the datetime-serialization fix ---

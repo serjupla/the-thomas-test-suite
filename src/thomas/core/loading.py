@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import jsonschema
 
@@ -26,8 +27,30 @@ class ThomasFileError(Exception):
         super().__init__(joined)
 
 
+def read_user_text(file_path: Path) -> str:
+    """Read a user-supplied text file as strict UTF-8, accepting an optional leading BOM.
+
+    Any other encoding (e.g. cp1252 from a Windows editor) is rejected with a
+    ThomasFileError naming the file, instead of being loaded with silently
+    replaced characters (contracts/file-encoding.md).
+    """
+    try:
+        raw_bytes = file_path.read_bytes()
+    except OSError as exc:
+        raise ThomasFileError([(str(file_path), f"could not read file: {exc}")]) from exc
+
+    try:
+        return raw_bytes.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        message = (
+            f"file is not valid UTF-8 (invalid byte 0x{exc.object[exc.start]:02X} at offset {exc.start}); "
+            "save it with UTF-8 encoding"
+        )
+        raise ThomasFileError([(str(file_path), message)]) from exc
+
+
 def _load_schema(schema_name: str) -> dict:
-    schema_text = resources.files("thomas.schemas").joinpath(schema_name).read_text()
+    schema_text = resources.files("thomas.schemas").joinpath(schema_name).read_text(encoding="utf-8")
     return json.loads(schema_text)
 
 
@@ -58,10 +81,7 @@ def load_and_validate(file_path: Path, schema_name: str) -> dict:
     specific invalid field on any parse or validation failure, including an
     incompatible schema_version.
     """
-    try:
-        raw_text = file_path.read_text()
-    except OSError as exc:
-        raise ThomasFileError([(str(file_path), f"could not read file: {exc}")]) from exc
+    raw_text = read_user_text(file_path)
 
     try:
         document = json.loads(raw_text)
@@ -156,10 +176,7 @@ def load_environment(file_path: Path) -> dict:
     since a plain `json.loads` silently collapses duplicate keys), and — when
     `apis` has 2+ entries — exactly one `default: true` entry (FR-006).
     """
-    try:
-        raw_text = file_path.read_text()
-    except OSError as exc:
-        raise ThomasFileError([(str(file_path), f"could not read file: {exc}")]) from exc
+    raw_text = read_user_text(file_path)
 
     duplicate_keys: list[str] = []
 
@@ -212,6 +229,16 @@ def load_environment(file_path: Path) -> dict:
                         f"ambiguous environment: multiple default APIs declared: {', '.join(default_names)}",
                     )
                 ])
+
+    timezone = document["timezone"]
+    try:
+        ZoneInfo(timezone)
+    except (ZoneInfoNotFoundError, ValueError) as exc:
+        message = (
+            f"unknown timezone '{timezone}': not a valid IANA time zone name "
+            "(on Windows, make sure the 'tzdata' package is installed)"
+        )
+        raise ThomasFileError([(str(file_path), message)]) from exc
 
     return document
 

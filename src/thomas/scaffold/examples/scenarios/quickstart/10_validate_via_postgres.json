@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "feature": "public_api_postgres_validation",
+  "scenario_id": "validate_via_postgres",
+  "description": "Demonstrates validating a persisted record through a real (here, fictional) PostgreSQL database: the API call creates a resource, then PostgreSQL queries confirm its status and its numeric total landed in the downstream system.",
+  "endpoint": {
+    "method": "POST",
+    "path": "/posts"
+  },
+  "payload": {
+    "title": "order-{{post_title}}",
+    "body": "{{post_body}}",
+    "userId": "{{user_id}}"
+  },
+  "api_checks": [
+    { "id": "status_created", "field": "status_code", "operator": "equals", "expected_value": 201 }
+  ],
+  "correlation": {
+    "source": "api_response",
+    "field": "$.id"
+  },
+  "validations": [
+    {
+      "id": "order_status_settled",
+      "connector": "pg_main",
+      "query": "SELECT status, total_amount FROM fictional_orders WHERE order_id = :correlation_id::bigint",
+      "field": "status",
+      "operator": "equals",
+      "expected_value": "SETTLED"
+    },
+    {
+      "id": "order_total_positive",
+      "connector": "pg_main",
+      "query": "SELECT status, total_amount FROM fictional_orders WHERE order_id = :correlation_id::bigint",
+      "field": "total_amount",
+      "operator": "greater_than",
+      "expected_value": 0
+    }
+  ]
+}

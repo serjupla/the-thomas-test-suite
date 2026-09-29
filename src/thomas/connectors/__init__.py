@@ -1,9 +1,11 @@
 """Abstract connector contract + type registry. See docs/architecture/05-connectors.md.
 
 `BaseConnector` is the isolation boundary every connector type (present and
-future) implements. Only `FakeConnector` (test-only) is registered by this
-feature; real drivers (Oracle, DB2, Mongo, Kafka) register here in their own
-future features without touching `thomas.validate` orchestration logic.
+future) implements. Built-in types registered here: `fake` (test-only),
+`oracle`, `db2`, `postgres` (alias `postgresql`) and `kafka`. Each real driver
+is imported lazily inside its connector's `__init__`, so registering it never
+requires the optional extra. New types register here without touching
+`thomas.validate` orchestration logic.
 """
 
 from __future__ import annotations
@@ -74,10 +76,12 @@ def _register_builtin_types() -> None:
     from thomas.connectors.fake import FakeConnector
     from thomas.connectors.kafka import KafkaConnector
     from thomas.connectors.oracle import OracleConnector
+    from thomas.connectors.postgres import PostgresConnector
 
     CONNECTOR_TYPES["fake"] = FakeConnector
     CONNECTOR_TYPES["oracle"] = OracleConnector
     CONNECTOR_TYPES["db2"] = DB2Connector
+    CONNECTOR_TYPES["postgres"] = CONNECTOR_TYPES["postgresql"] = PostgresConnector
     CONNECTOR_TYPES["kafka"] = KafkaConnector
 
 

@@ -38,7 +38,7 @@ VALID_VARIABLES = {
 
 
 def write_json(path: Path, document: dict) -> None:
-    path.write_text(json.dumps(document))
+    path.write_text(json.dumps(document), encoding="utf-8")
 
 
 def test_load_scenarios_valid_folder(tmp_path):
@@ -116,6 +116,27 @@ def test_load_environment_valid(tmp_path):
     document = load_environment(env_path)
 
     assert document["environment_name"] == "dev"
+
+
+@pytest.mark.parametrize("connector_type", ["postgres", "postgresql"])
+def test_load_environment_accepts_postgres_connector_types(tmp_path, connector_type):
+    env_path = tmp_path / "dev.json"
+    write_json(
+        env_path,
+        {
+            **VALID_ENVIRONMENT,
+            "connectors": {
+                "pg_main": {
+                    "type": connector_type,
+                    "connection_string": "postgresql://fictional-pg-host:5432/fictional_db",
+                }
+            },
+        },
+    )
+
+    document = load_environment(env_path)
+
+    assert document["connectors"]["pg_main"]["type"] == connector_type
 
 
 def test_load_environment_rejects_invalid(tmp_path):

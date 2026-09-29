@@ -78,7 +78,7 @@
         "type": "object",
         "required": ["type"],
         "properties": {
-          "type": { "enum": ["oracle", "db2", "mongo", "kafka", "fake"] }
+          "type": { "enum": ["oracle", "db2", "postgres", "postgresql", "mongo", "kafka", "fake"] }
         }
       }
     }

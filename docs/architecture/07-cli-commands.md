@@ -22,6 +22,15 @@
   the first line of output. Standard CLI-convention commands/flags
   (`help`, `--version`/`-v`), whether invoked at the top level or on a
   subcommand (e.g. `thomas validate --help`), never print the banner.
+- `request`, `validate` and `report` fail with exit code `1` and
+  `Invalid environment file: <path>: <reason>` when the environment file
+  is invalid — including an unknown `timezone` (checked at load time,
+  before any request, connector query or file write).
+- Console output never aborts a command because the terminal can't encode
+  a character (e.g. the banner on a legacy Windows `cp1252` console or
+  redirected output): unsupported characters are printed as `?`. The
+  stream's encoding is not changed, and files are never affected (they are
+  always UTF-8, see `03-data-schemas.md` → "File encoding").
 
 ## `thomas request`
 

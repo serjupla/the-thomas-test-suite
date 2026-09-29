@@ -113,6 +113,7 @@ without introducing a second masking code path.
 [project.optional-dependencies]
 oracle = ["oracledb"]
 db2 = ["ibm-db"]
+postgres = ["psycopg[binary]"]
 mongo = ["pymongo"]
 kafka = ["confluent-kafka"]
 ```
@@ -163,6 +164,91 @@ detect this and guide the user to exactly which extra to install (e.g.
   documented as an additional prerequisite in that case.
 - Same behavior contract as the Oracle connector (single expected row,
   same technical error rules).
+
+## PostgreSQL Connector
+
+```json
+"pg_main": {
+  "type": "postgres",
+  "connection_string": "postgresql://fictional-pg-host:5432/fictional_db?sslmode=require",
+  "username": "...",
+  "password": "...",
+  "connect_timeout": 10
+}
+```
+
+- `type`: `"postgres"` or its alias `"postgresql"` (identical behavior;
+  both are registered and accepted by the environment schema).
+- Fields:
+
+| Field | Required | Notes |
+|---|---|---|
+| `connection_string` | yes | libpq key/value DSN (`host=... port=5432 dbname=...`) or URI (`postgresql://user:pass@host:5432/db?sslmode=require`). May embed credentials and extra libpq parameters (`sslmode`, `options`, ...). |
+| `username` | no | When non-empty, overrides any user embedded in `connection_string`. |
+| `password` | no | When non-empty, overrides any password embedded in `connection_string`. |
+| `connect_timeout` | no | Positive integer, seconds, default `10`. Bounds each connect attempt (enforced by the driver across every resolved host). |
+
+- Driver: `psycopg` 3 via the `psycopg[binary]` wheel, which bundles
+  libpq — no OS-level Postgres client is needed. Install with
+  `pip install thomas[postgres]`; without it, instantiating the connector
+  fails with `PostgreSQL driver not installed. Run: pip install
+  thomas[postgres]`.
+- Session: opened in **autocommit** mode and immediately made read-only
+  with `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`. A failed
+  query (syntax error, missing table, write attempt) therefore never
+  leaves the connection in an aborted transaction: the next validation on
+  the same connection runs normally. Writes fail with a `query failed:`
+  technical error.
+- `run_validation`: `:correlation_id` (zero or more occurrences) is
+  rewritten to the driver's native named bind and the value is always
+  sent as a parameter, never formatted into the SQL text. Scenario
+  authors write plain Postgres SQL:
+  - a literal `%` (e.g. `LIKE 'order-%'`) is escaped automatically;
+  - `::` casts (`created_at::date`, `:correlation_id::bigint`) are
+    preserved.
+- The bound value is sent with an unknown type, so the server infers it
+  from context: `WHERE id = :correlation_id` against an `integer` or
+  `uuid` column works without a cast. When inference fails (for example
+  an ambiguous function argument), add an explicit cast such as
+  `:correlation_id::uuid`.
+- Same single-row contract as Oracle/DB2; `field` is the column name,
+  case-insensitive. Returned values are normalized to JSON natives:
+
+| PostgreSQL type (Python value) | Returned as |
+|---|---|
+| `NULL`, `boolean`, `integer`/`bigint`, `real`/`double precision`, `text`/`varchar` | unchanged |
+| `date`, `timestamp`, `timestamptz` | unchanged; serialized as ISO-8601 in the execution record (with the offset for `timestamptz`) |
+| `numeric` | `int` when integral, otherwise `float` |
+| `uuid` | canonical lower-case string |
+| `json` / `jsonb` | object/array, with values normalized recursively |
+| arrays | list, elements normalized recursively |
+| `bytea` | Postgres hex text form, e.g. `\x01ff` |
+| anything else (`time`, `interval`, `inet`, ranges, ...) | its text form (`str()`) |
+
+- Precision caveat: `numeric` values with more than about 15 significant
+  digits lose precision when converted to `float`. When exact comparison
+  matters, select the column as text (`SELECT total_amount::text AS
+  total_amount ...`) and compare against a string.
+- Query timeouts: there is no dedicated field. Set `statement_timeout`
+  through libpq `options` in `connection_string`, e.g.
+  `postgresql://host/db?options=-c%20statement_timeout%3D5000` or
+  `host=... options='-c statement_timeout=5000'`.
+- Technical errors:
+  - zero rows → `no record found for the given query`;
+  - more than one row → `query returned multiple records; refine the
+    query to return a single record`;
+  - missing column → `field not found in query result: <field>`;
+  - database error → `query failed: <first line of the server message>`
+    (redacted of configured credentials);
+  - connection failure (including a failure of the read-only `SET`) →
+    `failed to connect to PostgreSQL database — check
+    connection_string/username/password`; the driver's own message is
+    logged at DEBUG only with every credential value replaced by `***`,
+    and never with a traceback.
+- `NEVER_SHOW_FIELDS = {"connection_string", "username", "password"}` —
+  never rendered in a report, in any state (the connection string can
+  embed credentials). `connect_timeout` and `type` are displayable. The
+  report's Query column shows the original SQL text.
 
 ## MongoDB Connector
 

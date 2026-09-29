@@ -63,7 +63,7 @@ def test_save_variables_writes_schema_version_and_variables(tmp_path):
     file_path = tmp_path / "variables.json"
     save_variables(file_path, {"order_id": "abc-123", "user_id": 42})
 
-    written = json.loads(file_path.read_text())
+    written = json.loads(file_path.read_text(encoding="utf-8"))
     assert written == {"schema_version": 1, "variables": {"order_id": "abc-123", "user_id": 42}}
 
 

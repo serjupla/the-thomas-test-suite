@@ -29,7 +29,7 @@ characteristics no single researched tool brings together:
    write code (Java, Python, or otherwise) per test case.
 2. **Data-driven assertions**, configured by data (query + operator +
    expected value), not by code — a non-programmer can edit a scenario.
-3. **Multiple heterogeneous data sources** (Oracle, DB2, MongoDB, Kafka)
+3. **Multiple heterogeneous data sources** (Oracle, DB2, PostgreSQL, MongoDB, Kafka)
    under the same declarative interface.
 4. **Execution physically decoupled in time** between dispatch and
    validation, as a core design feature — not a workaround.
@@ -44,6 +44,7 @@ pip install the-thomas-test-suite
 # To run `thomas validate` against a specific data source, install its extra:
 pip install "the-thomas-test-suite[oracle]"
 pip install "the-thomas-test-suite[db2]"
+pip install "the-thomas-test-suite[postgres]"
 pip install "the-thomas-test-suite[kafka]"
 ```
 
@@ -83,6 +84,10 @@ thomas report --execution executions/<execution-record-from-above>.json \
                --environment examples/config/environments/example.json
 ```
 
+All configuration and scenario files (environments, variables, scenarios)
+must be saved as UTF-8, with or without BOM — the default in most editors,
+including VS Code and Notepad on Windows.
+
 `thomas init` creates a ready-to-use project structure with your own
 `scenarios/` folder plus `examples/` — three ready-to-run scenarios covering
 reading data from an API, writing data to an API, and a two-step flow where
@@ -113,10 +118,11 @@ Every run also produces a self-contained, bilingual HTML report with three views
 
 The Thomas is under active development. `thomas request`, `thomas
 validate` (data-source validation), and `thomas report` (self-contained,
-bilingual HTML report) are all fully functional, together with three
-real connectors (Oracle, DB2, and Kafka, via the `thomas[oracle]`,
-`thomas[db2]`, and `thomas[kafka]` extras). Upcoming work adds a MongoDB
-connector and multi-environment refinement. See
+bilingual HTML report) are all fully functional, together with four
+real connectors (Oracle, DB2, PostgreSQL, and Kafka, via the
+`thomas[oracle]`, `thomas[db2]`, `thomas[postgres]`, and `thomas[kafka]`
+extras). Upcoming work adds a MongoDB connector and multi-environment
+refinement. See
 [docs/ROADMAP.md](docs/ROADMAP.md) for the full feature roadmap and
 current status (the roadmap is a process document kept in Portuguese by
 the maintainer; feature names and statuses are summarized here in

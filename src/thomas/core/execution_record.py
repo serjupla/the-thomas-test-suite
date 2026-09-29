@@ -103,5 +103,7 @@ def build_execution_record(
 def write_execution_record(record: dict[str, Any], output_dir: Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{record['execution_id']}.json"
-    output_path.write_text(json.dumps(record, indent=2, cls=ExecutionRecordEncoder))
+    output_path.write_text(
+        json.dumps(record, indent=2, cls=ExecutionRecordEncoder), encoding="utf-8", newline="\n"
+    )
     return output_path

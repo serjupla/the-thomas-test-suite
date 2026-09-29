@@ -44,7 +44,7 @@ def make_result(**overrides) -> ScenarioResult:
 
 
 def load_execution_schema() -> dict:
-    schema_text = resources.files("thomas.schemas").joinpath("execution_v1.json").read_text()
+    schema_text = resources.files("thomas.schemas").joinpath("execution_v1.json").read_text(encoding="utf-8")
     return json.loads(schema_text)
 
 
@@ -136,7 +136,7 @@ def test_write_execution_record_creates_file(tmp_path):
     output_path = write_execution_record(record, tmp_path)
 
     assert output_path.exists()
-    on_disk = json.loads(output_path.read_text())
+    on_disk = json.loads(output_path.read_text(encoding="utf-8"))
     assert on_disk["execution_id"] == record["execution_id"]
 
 

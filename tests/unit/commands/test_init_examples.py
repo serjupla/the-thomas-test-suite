@@ -27,7 +27,7 @@ class TestInitExamples:
             example_env = dest / "examples/config/environments/example.json"
             assert example_env.exists()
 
-            data = json.loads(example_env.read_text())
+            data = json.loads(example_env.read_text(encoding="utf-8"))
             assert data["schema_version"] == 1
             assert "api" not in data
             assert data["apis"]["identity_service"]["default"] is True
@@ -54,7 +54,7 @@ class TestInitExamples:
             scenarios_dir = dest / "examples/scenarios/quickstart"
 
             for scenario_file in scenarios_dir.glob("*.json"):
-                data = json.loads(scenario_file.read_text())
+                data = json.loads(scenario_file.read_text(encoding="utf-8"))
                 assert data["schema_version"] == 1
                 assert "feature" in data
                 assert "scenario_id" in data
@@ -69,9 +69,9 @@ class TestInitExamples:
 
             scenarios_dir = dest / "examples/scenarios/quickstart"
 
-            read_scenario = json.loads((scenarios_dir / "01_read_existing_post.json").read_text())
-            write_scenario = json.loads((scenarios_dir / "02_create_new_post.json").read_text())
-            validated_scenario = json.loads((scenarios_dir / "03_create_and_confirm_order.json").read_text())
+            read_scenario = json.loads((scenarios_dir / "01_read_existing_post.json").read_text(encoding="utf-8"))
+            write_scenario = json.loads((scenarios_dir / "02_create_new_post.json").read_text(encoding="utf-8"))
+            validated_scenario = json.loads((scenarios_dir / "03_create_and_confirm_order.json").read_text(encoding="utf-8"))
 
             assert read_scenario["endpoint"]["method"] == "GET"
             assert "validations" not in read_scenario
@@ -91,7 +91,7 @@ class TestInitExamples:
             vars_file = dest / "examples/config/variables.example.json"
             assert vars_file.exists()
 
-            data = json.loads(vars_file.read_text())
+            data = json.loads(vars_file.read_text(encoding="utf-8"))
             assert data["schema_version"] == 1
             assert "variables" in data
             assert "post_title" in data["variables"]

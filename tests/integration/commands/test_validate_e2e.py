@@ -72,7 +72,7 @@ EXECUTION_RECORD = {
 
 
 def write_json(path, document) -> None:
-    path.write_text(json.dumps(document, indent=2))
+    path.write_text(json.dumps(document, indent=2), encoding="utf-8")
 
 
 def test_validate_happy_path_appends_round(tmp_path, monkeypatch):
@@ -91,7 +91,7 @@ def test_validate_happy_path_appends_round(tmp_path, monkeypatch):
     ])
 
     assert exit_code == 0
-    record = json.loads(exec_path.read_text())
+    record = json.loads(exec_path.read_text(encoding="utf-8"))
     rounds = record["results"][0]["validation_rounds"]
     assert len(rounds) == 1
     assert rounds[0]["results"][0]["passed"] is True
@@ -117,7 +117,7 @@ def test_validate_failing_comparison_sets_final_status_failed(tmp_path, monkeypa
     ])
 
     assert exit_code == 0
-    record = json.loads(exec_path.read_text())
+    record = json.loads(exec_path.read_text(encoding="utf-8"))
     assert record["results"][0]["validation_rounds"][0]["round_result"] == "failed"
     assert record["results"][0]["final_status"] == "failed"
 
@@ -137,11 +137,11 @@ def test_validate_second_run_appends_second_round(tmp_path, monkeypatch):
         "--log-file", str(tmp_path / "thomas.log"),
     ]
     main(args)
-    record_after_first = json.loads(exec_path.read_text())
+    record_after_first = json.loads(exec_path.read_text(encoding="utf-8"))
     first_round = record_after_first["results"][0]["validation_rounds"][0]
 
     main(args)
-    record_after_second = json.loads(exec_path.read_text())
+    record_after_second = json.loads(exec_path.read_text(encoding="utf-8"))
     rounds = record_after_second["results"][0]["validation_rounds"]
 
     assert len(rounds) == 2
@@ -218,7 +218,7 @@ def test_validate_auto_resolves_environment_from_execution_record(tmp_path, monk
     captured = capsys.readouterr()
     assert exit_code == 0
     assert "Using environment 'dev' (auto-detected from execution file)" in captured.out
-    record = json.loads(exec_path.read_text())
+    record = json.loads(exec_path.read_text(encoding="utf-8"))
     assert record["results"][0]["final_status"] == "passed"
 
 
@@ -346,7 +346,7 @@ def test_validate_oracle_single_row_match_passes(tmp_path, monkeypatch):
     ])
 
     assert exit_code == 0
-    record = json.loads(exec_path.read_text())
+    record = json.loads(exec_path.read_text(encoding="utf-8"))
     rounds = record["results"][0]["validation_rounds"]
     assert rounds[0]["results"][0]["passed"] is True
     assert rounds[0]["results"][0]["technical_error"] is None
@@ -458,7 +458,7 @@ def test_validate_datetime_obtained_persisted_as_iso_string(tmp_path, monkeypatc
     ])
 
     assert exit_code == 0
-    record = json.loads(exec_path.read_text())
+    record = json.loads(exec_path.read_text(encoding="utf-8"))
     rounds = record["results"][0]["validation_rounds"]
     assert rounds[0]["results"][0]["obtained"] == "2026-09-16T14:30:00+00:00"
 
@@ -486,7 +486,7 @@ def test_validate_date_obtained_persisted_as_iso_string(tmp_path, monkeypatch):
     ])
 
     assert exit_code == 0
-    record = json.loads(exec_path.read_text())
+    record = json.loads(exec_path.read_text(encoding="utf-8"))
     rounds = record["results"][0]["validation_rounds"]
     assert rounds[0]["results"][0]["obtained"] == "2026-09-16"
 
@@ -532,7 +532,7 @@ def test_validate_nested_datetime_in_obtained_persisted_as_iso_strings(tmp_path,
     ])
 
     assert exit_code == 0
-    record = json.loads(exec_path.read_text())
+    record = json.loads(exec_path.read_text(encoding="utf-8"))
     obtained = record["results"][0]["validation_rounds"][0]["results"][0]["obtained"]
     assert obtained == {
         "created_at": "2026-09-16T14:30:00+00:00",
@@ -557,7 +557,7 @@ def test_validate_no_temporal_values_output_unchanged(tmp_path, monkeypatch):
     ])
 
     assert exit_code == 0
-    record = json.loads(exec_path.read_text())
+    record = json.loads(exec_path.read_text(encoding="utf-8"))
     rounds = record["results"][0]["validation_rounds"]
     assert len(rounds) == 1
     assert rounds[0]["results"][0]["obtained"] == 150.0
@@ -600,7 +600,7 @@ def test_validate_prior_round_with_iso_datetime_strings_untouched_new_round_appe
     ])
 
     assert exit_code == 0
-    record = json.loads(exec_path.read_text())
+    record = json.loads(exec_path.read_text(encoding="utf-8"))
     rounds = record["results"][0]["validation_rounds"]
     assert len(rounds) == 2
     assert rounds[0] == prior_round

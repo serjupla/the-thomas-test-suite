@@ -67,4 +67,6 @@ def find_undefined_references(payload: dict[str, Any] | None, variables: dict[st
 
 def save_variables(file_path: Path, variables: dict[str, Any]) -> None:
     """Rewrite the variables file at file_path with the given final values."""
-    file_path.write_text(json.dumps({"schema_version": 1, "variables": variables}, indent=2))
+    file_path.write_text(
+        json.dumps({"schema_version": 1, "variables": variables}, indent=2), encoding="utf-8", newline="\n"
+    )

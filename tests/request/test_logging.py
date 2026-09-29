@@ -33,7 +33,7 @@ VALID_SCENARIO = {
 
 
 def write_json(path, document) -> None:
-    path.write_text(json.dumps(document))
+    path.write_text(json.dumps(document), encoding="utf-8")
 
 
 @responses.activate
@@ -62,7 +62,7 @@ def test_log_file_has_full_detail_and_no_credentials(tmp_path, monkeypatch):
     ])
 
     assert exit_code == 0
-    log_content = log_path.read_text()
+    log_content = log_path.read_text(encoding="utf-8")
     assert "amount" in log_content
     assert "PENDING" in log_content
     assert "super-secret-value" not in log_content

@@ -36,7 +36,7 @@ class TestInitE2E:
 
             # Add a user file to scenarios
             user_file = dest / "scenarios" / "my_test.json"
-            user_file.write_text('{"feature": "test"}')
+            user_file.write_text('{"feature": "test"}', encoding="utf-8")
 
             # Second run: init again
             result2 = scaffold_project(destination=dest)
@@ -48,7 +48,7 @@ class TestInitE2E:
             assert len(result2.skipped) > 0
             # User file should be untouched
             assert user_file.exists()
-            assert user_file.read_text() == '{"feature": "test"}'
+            assert user_file.read_text(encoding="utf-8") == '{"feature": "test"}'
 
     def test_init_with_force_refreshes_templates(self):
         """Test that --force overwrites template files but protects scenarios."""
@@ -60,14 +60,14 @@ class TestInitE2E:
 
             # Modify a template file
             readme = dest / "README"
-            readme.write_text("MODIFIED")
+            readme.write_text("MODIFIED", encoding="utf-8")
 
             # Second run with force
             result2 = scaffold_project(destination=dest, force=True)
 
             # README should be overwritten
             assert len(result2.overwritten) > 0
-            assert "MODIFIED" not in readme.read_text()
+            assert "MODIFIED" not in readme.read_text(encoding="utf-8")
 
             # Scenarios should still be protected
             assert len(result2.protected) > 0
@@ -82,7 +82,7 @@ class TestInitE2E:
 
             # Add user scenario
             user_scenario = dest / "scenarios" / "user_test.json"
-            user_scenario.write_text('{"scenario": "user"}')
+            user_scenario.write_text('{"scenario": "user"}', encoding="utf-8")
 
             # Force refresh (should never touch scenarios)
             result = scaffold_project(destination=dest, force=True)
@@ -140,7 +140,7 @@ def test_generated_quickstart_examples_run_request_validate_report_without_local
     assert len(execution_files) == 1
     execution_path = execution_files[0]
 
-    record = json.loads(execution_path.read_text())
+    record = json.loads(execution_path.read_text(encoding="utf-8"))
     results_by_id = {r["scenario_id"]: r for r in record["results"]}
     assert results_by_id["read_existing_post"]["api_result"] == "passed"
     assert results_by_id["create_new_post"]["api_result"] == "passed"
@@ -155,7 +155,7 @@ def test_generated_quickstart_examples_run_request_validate_report_without_local
     assert results_by_id["consume_order_id"]["request_sent"]["path"] == "/comments?postId=101"
     assert results_by_id["consume_order_id"]["api_result"] == "passed"
 
-    updated_variables = json.loads(variables_path.read_text())
+    updated_variables = json.loads(variables_path.read_text(encoding="utf-8"))
     assert updated_variables["variables"]["order_id"] == 101
 
     validate_exit_code = main([
@@ -165,7 +165,7 @@ def test_generated_quickstart_examples_run_request_validate_report_without_local
     ])
     assert validate_exit_code == 0
 
-    record = json.loads(execution_path.read_text())
+    record = json.loads(execution_path.read_text(encoding="utf-8"))
     results_by_id = {r["scenario_id"]: r for r in record["results"]}
     validated = results_by_id["create_and_confirm_order"]
     assert len(validated["validation_rounds"]) == 1
@@ -181,5 +181,5 @@ def test_generated_quickstart_examples_run_request_validate_report_without_local
 
     html_files = list((tmp_path / "reports").glob("*.html"))
     assert len(html_files) == 1
-    html = html_files[0].read_text()
+    html = html_files[0].read_text(encoding="utf-8")
     assert "order_confirmed" in html

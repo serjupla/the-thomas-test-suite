@@ -33,6 +33,13 @@
       "username": "fictional_db2_user",
       "password": "fictional-db2-password"
     },
+    "pg_main": {
+      "type": "postgres",
+      "connection_string": "postgresql://fictional-pg-host:5432/fictional_db?sslmode=prefer",
+      "username": "fictional_pg_user",
+      "password": "fictional-pg-password",
+      "connect_timeout": 10
+    },
     "kafka_main": {
       "type": "kafka",
       "brokers": ["fictional-kafka-broker1:9092", "fictional-kafka-broker2:9092"],

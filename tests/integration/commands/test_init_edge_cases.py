@@ -1,6 +1,7 @@
 """Integration tests for init edge cases (T043)."""
 
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -52,6 +53,10 @@ class TestInitEdgeCases:
             # Should not raise
             validate_destination_path(valid_path)
 
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="POSIX-only: needs os.getuid() and chmod(0o444) making a directory unwritable",
+    )
     def test_permission_handling(self):
         """Test permission denied handling."""
         # This test is platform-specific and might not work in all environments

@@ -83,7 +83,7 @@ def _collect_credential_values(environment: dict) -> list[str]:
 def _configure_logging(log_file: Path, secrets: list[str]) -> None:
     logger = logging.getLogger("thomas")
     logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(log_file)
+    handler = logging.FileHandler(log_file, encoding="utf-8")
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
     handler.addFilter(_CredentialRedactingFilter(secrets))
@@ -245,7 +245,7 @@ def run_request_command(args: argparse.Namespace) -> int:
 
     import json
 
-    record = json.loads(output_path.read_text())
+    record = json.loads(output_path.read_text(encoding="utf-8"))
     _print_summary(record["results"])
     console.print(f"Execution record written to [bold]{output_path}[/bold]")
     return 0
@@ -378,7 +378,9 @@ def run_validate_command(args: argparse.Namespace) -> int:
             console.print(f"[red]{escape(str(exc))}[/red]")
             return 1
 
-    args.execution.write_text(json.dumps(updated_record, indent=2, cls=ExecutionRecordEncoder))
+    args.execution.write_text(
+        json.dumps(updated_record, indent=2, cls=ExecutionRecordEncoder), encoding="utf-8", newline="\n"
+    )
 
     new_rounds = [
         result["validation_rounds"][-1]
@@ -448,6 +450,14 @@ def run_report_command(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # A legacy Windows console or redirected output may use a code page (e.g.
+    # cp1252) that can't encode the banner, tables or emoji: substitute '?'
+    # instead of crashing, keeping the stream's encoding unchanged (FR-007).
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(errors="replace")
+
     argv = sys.argv[1:] if argv is None else argv
     if "--version" in argv or "-v" in argv:
         # Short-circuits before subcommand parsing, even as `thomas <cmd> --version`

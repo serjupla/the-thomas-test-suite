@@ -46,13 +46,13 @@ class TestInitBasicScaffolding:
 
             # Check environment config
             env_file = dest / "config/environments/example.json.dist"
-            env_data = json.loads(env_file.read_text())
+            env_data = json.loads(env_file.read_text(encoding="utf-8"))
             assert env_data["schema_version"] == 1
             assert "base_url" in env_data["api"]
 
             # Check variables
             vars_file = dest / "config/variables.example.json"
-            vars_data = json.loads(vars_file.read_text())
+            vars_data = json.loads(vars_file.read_text(encoding="utf-8"))
             assert vars_data["schema_version"] == 1
             assert "variables" in vars_data
 
@@ -99,7 +99,7 @@ class TestInitBasicScaffolding:
             dest = Path(tmpdir)
             scaffold_project(destination=dest)
 
-            gitignore = (dest / ".gitignore").read_text()
+            gitignore = (dest / ".gitignore").read_text(encoding="utf-8")
             # Check for key entries
             assert "config/environments/*.json" in gitignore
             assert "__pycache__" in gitignore
