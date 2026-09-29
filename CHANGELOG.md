@@ -5,6 +5,49 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.9.0] - 2026-09-29
+
+### Added
+
+- PostgreSQL connector (F019, public issue #3): fourth real data-source
+  connector, following the Oracle/DB2 behavior contract — `:correlation_id`
+  as a native named bind (never string concatenation), zero/multiple rows
+  and missing fields treated as a technical error, case-insensitive field
+  extraction, one connection reused per `validate` run, installable via
+  the `thomas[postgres]` extra (`psycopg[binary]`, which bundles libpq, so
+  no OS-level client is needed). Registered as both `postgres` and
+  `postgresql`. The session runs in autocommit mode and is read-only, so a
+  failed query never poisons later validations; literal `%` and `::` casts
+  work as-is in queries. Returned values are normalized to JSON natives
+  (`numeric` → int/float, `uuid` → string, `json`/`jsonb` and arrays →
+  objects/lists). `connection_string`, `username`, and `password` are
+  permanently hidden in the report and never logged, not even at DEBUG. A
+  new quickstart example scenario (`10_validate_via_postgres`) shows the
+  connector.
+
+### Fixed
+
+- Windows compatibility (F020, public issue #2 — thanks to João Gabriel dos
+  Santos Rodrigues ([@psico](https://github.com/psico)) for the detailed
+  report): the README quickstart now completes on a clean Windows install
+  with a `cp1252` locale.
+  - `tzdata` is installed automatically on Windows (platform-conditional
+    dependency; Linux/macOS unchanged), so `"timezone": "UTC"` and every
+    other IANA zone resolve.
+  - The environment `timezone` is validated when the environment loads, in
+    `request`, `validate` and `report`: an unknown zone fails with a clear
+    `Invalid environment file` message before any request or query runs.
+  - Every file is read and written as UTF-8, independent of the OS locale:
+    scenario/environment/variables/execution-record/logo files accept an
+    optional BOM, and a file in another encoding is rejected with a message
+    naming it (no more silent `á` → `Ã¡` corruption of expected values).
+    Generated files (execution record, variables, HTML report, `thomas
+    init` files, `thomas.log`) are UTF-8 with `\n` line endings, so they
+    are byte-identical across operating systems. `thomas report` no longer
+    crashes on Windows.
+  - Console output no longer crashes on characters the terminal can't
+    display (banner, tables, emoji); they are replaced with `?`.
+
 ## [0.8.0] - 2026-09-19
 
 ### Added
@@ -211,6 +254,7 @@ All changes are additive: single-API environments, scenarios without
 - Initial PyPI packaging under the distribution name
   `the-thomas-test-suite` (CLI command remains `thomas`).
 
+[0.9.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/serjupla/the-thomas-test-suite/compare/v0.5.0...v0.6.0
