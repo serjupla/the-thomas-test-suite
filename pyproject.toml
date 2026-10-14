@@ -38,7 +38,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "responses>=0.25",
-    "ruff>=0.16,<0.17",
+    "ruff>=0.16,<0.18",
     "beautifulsoup4>=4.12",
 ]
 oracle = ["oracledb"]
